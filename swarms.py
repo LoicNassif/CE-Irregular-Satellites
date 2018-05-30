@@ -74,10 +74,10 @@ class CollSwarm:
     Ma: initial mass of the swarm [kg]
     Dt: transition particle size of the swarm [m]
     Dmax: maximum particle size of the swarm [m]
-    L_s: luminosity of the primary [solar lum] --TO CHANGE
-    M_s: mass of the primary [solar mass] --TO CHANGE
-    M_pl: mass of the planet [earth masses] --TO CHANGE
-    a_pl: semi-major axis of the planet [AU] --TO CHANGE
+    L_s: luminosity of the primary [W] (3.828e26 W = 1 solar lum)
+    M_s: mass of the primary [kg] (1.989e30 kg = 1 solar mass)
+    M_pl: mass of the planet [kg] (5.972e24 kg = 1 earth mass)
+    a_pl: semi-major axis of the planet [m] (1.496e11 m = 1 AU)
     R_pl: radius of the planet [m]
     eta: constant fraction of the Hill radius at which irregulars orbit
     rho: mass density of the swarm [kg/m^3]
@@ -96,8 +96,8 @@ class CollSwarm:
 
     def computeDmin(self):
         """ATM: inputs are in solar masses, luminosity and earth-masses."""
-        a1 = (self.eta**0.5)*self.L_s
-        a2 = self.rho*(self.M_pl**(1/3))*(self.M_s**(2/3))
+        a1 = (self.eta**0.5)*(self.L_s/3.828e26)
+        a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
         return 2e5*(a1/a2)
 
     def computeAtot(self):
