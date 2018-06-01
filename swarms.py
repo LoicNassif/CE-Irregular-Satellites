@@ -6,7 +6,7 @@ EVERY INPUT MUST BE IN SI UNITS
 
 IN DEVELOPMENT"""
 
-from numpy import pi
+from numpy import pi, inf
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -47,13 +47,19 @@ class SizeDistribution:
     def Mtot(self, M0, Rcc0, t, tnleft, A, Dc):
         """The total mass of the swarm at some given time t."""
         if t <= tnleft:
-            return (M0/5.97219e24)/(1 + Rcc0*t)
+            return (M0)/(1 + Rcc0*t)
         else:
-            return A*Dccc**3
+            return A*Dc**3
 
     def Atot(self):
         """Surface area of swarm. Output in AU"""
         return (pi/4)*265.3*self.ks_val*(self.Dmin**(5 - 3*self.qs)/(3*self.qs - 5))
+
+    def Atot_mod(self, M):
+        """A testing function for SI input"""
+        part1 = (3/2)*(1/self.rho)*((6 - 3*self.qg)/(3*self.qs - 5))
+        part2 = self.Dmin**(5 - 3*self.qs)*self.Dt**(3*self.qs - 3*self.qg)
+        return part1*part2*self.Dc**(3*self.qg - 6)*M
 
     def Ntot(self):
         """Number of objects between Dmin and Dt"""
@@ -61,14 +67,13 @@ class SizeDistribution:
 
     def n(self, Xc):
         """Number of objects between XcDc and Dc"""
-        return self.__kg*self.Dc**(3 - 3*self.qg)/(
+        return self.kg_val*self.Dc**(3 - 3*self.qg)/(
                 3 - 3*self.qg)*(1 - Xc**(3 - 3*self.qg))
 
 class CollSwarm:
     """Represents the irregular satellite swarm of a given planet. You can
     compute the following information using the following methods:
         -computeAtot(): computes the size distribution's surface area
-
 
     === Attributes ===
     Ma: initial mass of the swarm [kg]
@@ -82,26 +87,87 @@ class CollSwarm:
     eta: constant fraction of the Hill radius at which irregulars orbit
     rho: mass density of the swarm [kg/m^3]
     """
-    Ma: float; Dt: float; Dmax: float
-    L_s: float; M_s: float; M_pl: float
+    Ma: float; Dt: float; Dmax: float; Nstr: float
+    L_s: float; M_s: float; M_pl: float; Dc: float
     a_pl: float; R_pl: float; swarm: SizeDistribution
-    Dmin: float; eta: float;
+    Dmin: float; eta: float; fQ: float; f_vrel: float
 
-    def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, rho=1500):
-        self.Ma = M0; self.Dt = Dt; self.Dmax = Dmax;
-        self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl;
+    def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
+                rho=1500, fQ=5, f_vrel=4/pi):
+        self.Ma = M0; self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
+        self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
-        self.Dmin = self.computeDmin()/1e6;
+        self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax)
 
     def computeDmin(self):
-        """ATM: inputs are in solar masses, luminosity and earth-masses."""
+        """Compute the minimum sized object in the distribution."""
         a1 = (self.eta**0.5)*(self.L_s/3.828e26)
         a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
         return 2e5*(a1/a2)
 
     def computeAtot(self):
-        """description TBD"""
+        """Compute the distribution's total surface area."""
         self.swarm.kg(self.Ma)
         self.swarm.ks()
-        return self.swarm.Atot()
+        return self.swarm.Atot_mod(self.Ma)
+
+    def computeQd(self, D):
+        """Compute the planetesimal strength of an object."""
+        return 0.1*self.rho*(D/1000)**1.26/self.fQ
+
+    def computeRCC(self):
+        """Compute the rate of collision."""
+        Qd = self.computeQd(self.Dc)
+        a = (self.Ma/5.972e24)*(self.M_s/1.989e30)**1.38*self.f_vrel**2.27
+        b = (Qd**0.63*self.rho*(self.Dc/1000)*(self.M_pl/5.972e24)**0.24*
+            ((self.a_pl/1.496e11)*self.eta)**4.13)
+        return 1.3e7*(a/b)
+
+    def computeVrel(self):
+        """Compute the mean relative velocity of collisions."""
+        a = (4/pi)*516*(self.M_pl/5.972e24)**(1/3)*(self.M_s/1.989e30)**(1/6)
+        return a/((self.eta*(self.a_pl/1.496e11))**0.5)
+
+    def computeXc(self):
+        """Computes the constant Xc for which objects of size XcDc can destroy
+        objects of size Dc."""
+        Qd = self.computeQd(self.Dc)
+        vrel = self.computeVrel()
+        return (2*Qd/(vrel**2))**(1/3)
+
+    def computetnleft(self, Rcc0):
+        """Compute the time at which the first object is stranded."""
+        Xc = self.computeXc()
+        nval = self.swarm.n(Xc)
+        return nval/(Rcc0*self.Nstr)
+
+    def computeDc(self, tnleft, t):
+        """Compute the new Dc after stranding time."""
+        if t < tnleft:
+            return self.Dmax
+        else:
+            a = (1 + 0.4*(t - tnleft)/tnleft)**(1/1.2)
+            return self.Dmax/a
+
+    def computeMtot(self, t):
+        """Compute the total mass at a given time t."""
+        Rcc0 = self.computeRCC()
+        tnleft = self.computetnleft(Rcc0)
+        y0 = self.swarm.Mtot(self.Ma, Rcc0, t, inf, 0, self.Dmax)
+        A = y0/self.Dmax**3
+
+        Dct = self.computeDc(tnleft, t)
+        Mt = self.swarm.Mtot(self.Ma, Rcc0, t, tnleft, A, Dct)
+
+        return Mt
+
+    def updateSwarm(self, t):
+        """Description TBD"""
+        Rcc0 = self.computeRCC()
+        tnleft = self.computetnleft(Rcc0)
+        Dct = self.computeDc(tnleft, t)
+        Mt = self.computeMtot(t)
+        self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Dct)
+        self.Ma = Mt
+        self.Dc = Dct
