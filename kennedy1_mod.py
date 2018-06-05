@@ -15,7 +15,7 @@ def Mtot(rho, kg_val, Dt, Dc):
     return (pi/6)*rho*kg_val*a
 
 def n1(D, K):
-    return 5.97e24*K*D**(3 - 3*qg)/(3 - 3*qg)*(1 - 0.5**(3 - 3*qg))
+    return 5.97e24*K*D**(3 - 3*qg)/(3 - 3*qg)*(1 - Xc**(3 - 3*qg))
 
 def n_ks(K, D):
     return 5.97e24*K*D**(2 - 3*qs)
@@ -190,11 +190,7 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     Dmin = D_min(eta, L_s, rho, M_pl, M_s)
     kg_val = kg(Mtot0, Dc, rho)
     ks_val = ks1(Dt, kg_val)
-    #ks_val = ks(kg_val, Dt)
     area = Atot(ks_val, (Dmin/1e6))
-
-    print('mtot0 = ', Mtot0)
-    print('rho = {0:.3e}'.format(rho))
 
     Qd = Q_d(Dc, rho)
     vrel = v_rel(M_pl, M_s, eta, a_pl)
@@ -240,46 +236,6 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     Fs_dust = F_s(L_s, B_mu_dst, T_s, a_pl)
     F_scat_dust = F_scat(Fs_dust, areat, 0.32, 0.08, a_pl)
 
-
-
-    print('D_min = {0:.3e} micro-meters'.format(Dmin))
-    print('K_s = {0:.3e}'.format(ks_val))
-    print('K_g = {0:.3e}'.format(kg_val))
-    print('Area = {0:.3e} au^2'.format(area))
-    #print('Rate of collision = {0:.3e} yr^-1'.format(R_cc))
-    print('Xc = {0:.3e}'.format(X_c))
-    print('Qd = {0:.3e}'.format(Qd))
-    print('Hill Radius = {0:.4e} au'.format(rH))
-    print('Relative velocity = {0:.4e} ms^-1'.format(vrel))
-
-    print('Rcc = {0:.4e}'.format(R_cc1))
-    print('t_nleft = {0:.4e}'.format(tnleft))
-    #print('{0:.4e}'.format(((a_pl*eta)**4.13*Qd**0.63*1.7e8*6*M_pl**0.24*rho*Dc)/(1.3e7*n*(4/pi)**2.27*Mtot0)))
-    print('n = {0:.3e}'.format(n))
-
-    print()
-    print('At t = 4.5e9 years')
-    print()
-    print('Mtot = {0:.3e} Earth-mass'.format(M_tott))
-    print('Dc = {0:.3e} m'.format(Dc_t))
-    print('Area = {0:.3e} au^2'.format(areat))
-    print('collision time for Dmin grains = {0:.3e} yrs'.format(tcol))
-    print('X_PR1 = {0:.3e}'.format(xpr1))
-    print('X_PR2 = {0:.3e}'.format(xpr2))
-    print()
-    print('for wavelength = 1 micro-meter')
-    print()
-    print('F_pl = {0:.3e} Jy'.format(Fs_scat_planet1*1e26))
-    print('F_dust = {0:.3e} Jy'.format(fth_dust1*1e-26))
-    print()
-    print('for wavelength = 100 micro-meter')
-    print()
-    print('F_pl = {0:.3e} Jy'.format(fth_planet100*1e26))
-    print('F_dust = {0:.3e} Jy'.format(fth_dust100*1e-26))
-
-    print('effective temp = {0:.3e}'.format(t_planet1))
-    print('B_nu = {0:.3e}'.format(bmu_planet1))
-
     drange = linspace(100, 250000, 2500)
     #nrange = n_kg(kg_val, drange)
     timerange = logspace(0, 10, 20)
@@ -290,7 +246,6 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     Mtot00 = Mtot0
     for i in range(len(timerange)):
         Mtot_tt = Mtott(Mtot00, R_cc1, timerange[i], 1e111, 0, 0)
-        #Dctt = Dct(Dmax, 1e6*tnleft, timerange[i])
         kg_t = kg(Mtot00, Dmax, rho)
 
         kg_range.append(kg_t)
@@ -299,7 +254,6 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
 
 
     Mtot00 = Mtot0
-    #Dc00 = Dc
     Mtot_t = Mtot0
     Rccrange = []
 
@@ -309,14 +263,12 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
         if timerangea[i] > tnleft:
             tnleftrange.append(timerangea[i])
 
-    #params = [const, 1e6*tnleft, Dmax]
     y0 = Mtott(Mtot00, R_cc1, tnleft*1e6, 1e111, 0, 0)
     A = y0/Dmax**3
     Dctt = Dct(Dmax, 1e6*tnleft, 4.5e9)
     Mtot_tt = Mtott(Mtot00, R_cc1, 4.5e9,1e6*tnleft, A, Dctt)
     kg_t = kg(Mtot_tt*5.97e24, Dctt, rho)
     ks_tk = ks1SI(Dt, kg_t)
-    #ks_t = ks1(Dt, kg_t)
     number = N_SI(ks_tk, Dmin/1e6)
     sigtot = Atot(ks_tk, Dmin/1e6)
     dens = number/(4*pi*0.4**2*0.2*0.866*(0.35*1.5e8)**3)
@@ -327,7 +279,6 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     print("number = {0:.3e}".format(number))
     print("sigtot = {0:.3e}".format(sigtot/1.5e11**2))
     print("A = {0:.3e}".format(A))
-    #soln = integrate.odeint(g, y0, tnleftrange, args=(params,))
 
     for i in range(len(timerangea)):
         Dctt = Dct(Dmax, 1e6*tnleft, timerangea[i])
@@ -401,7 +352,7 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     # plt.loglog(waverange, F_th_dst)
     # plt.tight_layout()
     # plt.show()
-
+    #
     plt.figure(2)
     plt.title('number of objects')
     for i in range(len(sup_nrange)):
