@@ -7,7 +7,7 @@ EVERY INPUT MUST BE IN SI UNITS
 IN DEVELOPMENT"""
 
 from numpy import pi, inf
-from scipy import integrate
+import scipy.integrate as integrate
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -48,13 +48,13 @@ class SizeDistribution:
         """initialize from the specified mass"""
         self.kg_val = (self.Ma*(6/(pi*self.rho))*(6 - 3*self.qg)
                         *self.Dc**(3*self.qg - 6))
-        self.ks_val = self.kg_to_ks()
+        self.kg_to_ks()
 
     def init_from_area(self):
         """initialize from the specified area"""
         self.ks_val = ((4*(3*self.qs - 5)/pi)*self.sigma0
                         *self.Dmin**(3*self.qs - 5))
-        self.kg_val = self.ks_to_kg()
+        self.ks_to_kg()
 
     def kg_to_ks(self):
         """description TBD"""
@@ -74,6 +74,48 @@ class SizeDistribution:
     def Atot(self):
         """Surface area of swarm. Output in AU"""
         return (pi/4)*265.3*self.ks_val*(self.Dmin**(5 - 3*self.qs)/(3*self.qs - 5))
+
+    def Atot_int(self, dlow, dmid, dhigh):
+        """Surface area of swarm. Using integration. Output in meters."""
+        if (dlow is None) and (dmid is None):
+            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
+                                    self.Dmin, self.Dt)
+        elif dlow is None:
+            if dmid < self.Dmin:
+                raise ValueError("Invalid transition size input")
+            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
+                                    self.Dmin, dmid)
+        elif dmid is None:
+            if dlow > self.Dt:
+                raise ValueError("Invalid min size input")
+            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
+                                    dlow, self.Dt)
+        else:
+            if dlow > dmid:
+                raise ValueError("Invalid min and/or transition size input")
+            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
+                                    dlow, dmid)
+
+        if (dmid is None) and (dhigh is None):
+            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
+                                    self.Dt, self.Dc)
+        elif dmid is None:
+            if dhigh < self.Dt:
+                raise ValueError("Invalid max size input")
+            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
+                                    self.Dt, dhigh)
+        elif dhigh is None:
+            if dmid > self.Dc:
+                raise ValueError("Invalid transition size input")
+            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
+                                    dmid, self.Dc)
+        else:
+            if dmid > dhigh:
+                raise ValueError("Invalid transition and/or max size input")
+            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
+                                    dmid, dhigh)
+
+        return (self.rho*pi/6)*(lower[0] + upper[0])
 
     def Atot_mod(self):
         """A testing function for SI input"""
@@ -127,9 +169,9 @@ class CollSwarm:
         a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
         return 2e5*(a1/a2)
 
-    def computeAtot(self):
+    def computeAtot(self, dlow=None, dmid=None, dhigh=None):
         """Compute the distribution's total surface area."""
-        return self.swarm.Atot_mod()
+        return self.swarm.Atot_int(dlow, dmid, dhigh)
 
     def computeQd(self, D):
         """Compute the planetesimal strength of an object."""
