@@ -123,15 +123,35 @@ class SizeDistribution:
         part2 = self.Dmin**(5 - 3*self.qs)*self.Dt**(3*self.qs - 3*self.qg)
         return part1*part2*self.Dc**(3*self.qg - 6)*self.Ma
 
-    def Ntot(self):
-        """Number of objects between Dmin and Dt"""
-        return -self.ks_val*self.Dmin**(3 - 3*self.qs)/(3 - 3*self.qs)
+    def Ntot(self, dlow, dmid, dhigh):
+        """Number of objects between input specification"""
+        if (dlow is None) and (dmid is None):
+            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
+                                    self.Dmin, self.Dt)
+        elif dlow is None:
+            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
+                                    self.Dmin, dmid)
+        elif dmid is None:
+            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
+                                    dlow, self.Dt)
+        else:
+            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
+                                    dlow, dmid)
 
-    def n(self, Xc): #Nbig
-        """Number of objects between XcDc and Dc"""
-        return self.kg_val*self.Dc**(3 - 3*self.qg)/(
-                3 - 3*self.qg)*(1 - Xc**(3 - 3*self.qg))
+        if (dmid is None) and (dhigh is None):
+            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
+                                    self.Dt, self.Dc)
+        elif dmid is None:
+            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
+                                    self.Dt, dhigh)
+        elif dhigh is None:
+            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
+                                    dmid, self.Dc)
+        else:
+            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
+                                    dmid, dhigh)
 
+        return (lower[0] + upper[0])
 
 class CollSwarm:
     """Represents the irregular satellite swarm of a given planet. You can
@@ -170,8 +190,12 @@ class CollSwarm:
         return 2e5*(a1/a2)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None):
-        """Compute the distribution's total surface area."""
+        """Compute the distribution's surface area."""
         return self.swarm.Atot_int(dlow, dmid, dhigh)
+
+    def computeNtot(self, dlow=None, dmid=None, dhigh=None):
+        """Return the distribution's number of particles."""
+        return self.swarm.Ntot(dlow, dmid, dhigh)
 
     def computeQd(self, D):
         """Compute the planetesimal strength of an object."""
@@ -200,7 +224,7 @@ class CollSwarm:
     def computetnleft(self, Rcc0):
         """Compute the time at which the first object is stranded."""
         Xc = self.computeXc()
-        nval = self.swarm.n(Xc)
+        nval = self.computeNtot()#dlow=Xc*self.Dc, dmid=Xc*self.Dc)#, dhigh=self.Dc)
         return nval/(Rcc0*self.Nstr)
 
     def computeDc(self, tnleft, t):
