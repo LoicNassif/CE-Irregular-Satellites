@@ -256,17 +256,6 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     print('t_nleft = {0:.4e}'.format(tnleft))
     #print('{0:.4e}'.format(((a_pl*eta)**4.13*Qd**0.63*1.7e8*6*M_pl**0.24*rho*Dc)/(1.3e7*n*(4/pi)**2.27*Mtot0)))
     print('n = {0:.3e}'.format(n))
-
-    print()
-    print('At t = 4.5e9 years')
-    print()
-    print('Mtot = {0:.3e} Earth-mass'.format(M_tott))
-    print('Dc = {0:.3e} m'.format(Dc_t))
-    print('Area = {0:.3e} au^2'.format(areat))
-    print('collision time for Dmin grains = {0:.3e} yrs'.format(tcol))
-    print('X_PR1 = {0:.3e}'.format(xpr1))
-    print('X_PR2 = {0:.3e}'.format(xpr2))
-    print()
     print('for wavelength = 1 micro-meter')
     print()
     print('F_pl = {0:.3e} Jy'.format(Fs_scat_planet1*1e26))
@@ -410,6 +399,24 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
         plt.ylim([1e-5, 1e-2])
         plt.legend()
     plt.show()
+
+    Dcttest = Dct(Dmax, 1e6*tnleft, 4.5e9)
+    Mtot_ttest = Mtott(Mtot00, R_cc1, 4.5e9, 1e6*tnleft, A, Dcttest)
+    Mtot_tttest = Mtott(Mtot00, R_cc1, 4.5e9, 1e111, 0, 0)
+
+    kg_ttest = kg(Mtot_tttest, Dmax, rho)
+    ks_ttest = ks1(Dt, kg_ttest)
+    areatttest = Atot(ks_ttest, Dmin/1e6)
+
+    kg_test = kg(Mtot_ttest, Dcttest, rho)
+    ks_test = ks1(Dt, kg_test)
+    areattest = Atot(ks_test, Dmin/1e6)
+
+    print("t = 4.5e9 years")
+    print("Rcc = {0:.3e} yr^-1".format(R_cc1))
+    print("Mass without correction = {0:.3e} Earth-mass".format(Mtot_tttest))
+    print("Mass with correction = {0:.3e} Earth-mass".format(Mtot_ttest))
+
 
 if __name__ == '__main__':
     main(0.001*0.012345679, 100, 150000, 1500, 0.4, 1, 317.46, 1, 5.2, 6.9911e7) #Jupiter

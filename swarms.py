@@ -64,12 +64,12 @@ class SizeDistribution:
         """description TBD"""
         self.kg_val = self.Dt**(3*self.qg - 3*self.qs)*self.ks_val
 
-    def Mtot(self, M0, Rcc0, t, tnleft, A, Dc):
+    def Mtot(self, Rcc0, t, tnleft, A):
         """The total mass of the swarm at some given time t."""
         if t <= tnleft:
-            return (M0)/(1 + Rcc0*t)
+            return (self.Ma)/(1 + Rcc0*t)
         else:
-            return A*Dc**3
+            return A*self.Dc**3
 
     def Atot(self):
         """Surface area of swarm. Output in AU"""
@@ -118,8 +118,8 @@ class SizeDistribution:
             upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
                                                     - dmid**(5 - 3*self.qg))
 
-        print("lower = {0:.5e}".format((pi/4)*lower))
-        print("upper = {0:.5e}".format((pi/4)*upper))
+        #print("lower = {0:.5e}".format((pi/4)*lower))
+        #print("upper = {0:.5e}".format((pi/4)*upper))
         return (pi/4)*(lower + upper)
 
     def Atot_mod(self):
@@ -182,6 +182,7 @@ class CollSwarm:
     L_s: float; M_s: float; M_pl: float; Dc: float
     a_pl: float; R_pl: float; swarm: SizeDistribution
     Dmin: float; eta: float; fQ: float; f_vrel: float
+    Rcc0: float; tnleft: float
 
     def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
                 rho=1500, fQ=5, f_vrel=4/pi):
@@ -190,6 +191,7 @@ class CollSwarm:
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Ma=M0)
+        self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
 
     def computeDmin(self):
         """Compute the minimum sized object in the distribution."""
@@ -213,7 +215,7 @@ class CollSwarm:
         """Compute the rate of collision."""
         Qd = self.computeQd(self.Dmax)
         a = (self.swarm.Ma/5.972e24)*(self.M_s/1.989e30)**1.38*self.f_vrel**2.27
-        b = (Qd**0.63*self.rho*(self.Dc/1000)*(self.M_pl/5.972e24)**0.24*
+        b = (Qd**0.63*self.rho*(self.Dmax/1000)*(self.M_pl/5.972e24)**0.24*
             ((self.a_pl/1.496e11)*self.eta)**4.13)
         return 1.3e7*(a/b)
 
@@ -229,37 +231,33 @@ class CollSwarm:
         vrel = self.computeVrel()
         return (2*Qd/(vrel**2))**(1/3)
 
-    def computetnleft(self, Rcc0):
+    def computetnleft(self):
         """Compute the time at which the first object is stranded."""
         Xc = self.computeXc()
         nval = self.computeNtot()#dlow=Xc*self.Dc, dmid=Xc*self.Dc)#, dhigh=self.Dc)
-        return nval/(Rcc0*self.Nstr)
+        return nval/(self.Rcc0*self.Nstr)
 
-    def computeDc(self, tnleft, t):
+    def computeDc(self, t):
         """Compute the new Dc after stranding time."""
-        if t < tnleft:
+        if t < self.tnleft:
             return self.Dmax
         else:
-            a = (1 + 0.4*(t - tnleft)/tnleft)**(1/1.2)
+            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(1/1.2)
             return self.Dmax/a
 
     def computeMtot(self, t):
         """Compute the total mass at a given time t."""
-        Rcc0 = self.computeRCC()
-        tnleft = self.computetnleft(Rcc0)
-        y0 = self.swarm.Mtot(self.swarm.Ma, Rcc0, t, inf, 0, self.Dmax)
+        y0 = self.swarm.Mtot(self.Rcc0, t, inf, 0)
         A = y0/self.Dmax**3
-
-        Dct = self.computeDc(tnleft, t)
-        Mt = self.swarm.Mtot(self.swarm.Ma, Rcc0, t, tnleft, A, Dct)
+        Mt = self.swarm.Mtot(self.Rcc0, t, self.tnleft, A)
 
         return Mt
 
     def updateSwarm(self, t):
         """Description TBD"""
-        Rcc0 = self.computeRCC()
-        tnleft = self.computetnleft(Rcc0)
-        Dct = self.computeDc(tnleft, t)
+        Dct = self.computeDc(t)
+        #print("Dct = {0:.3e}".format(Dct))
         Mt = self.computeMtot(t)
+        print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Dct, Ma=Mt)
         self.Dc = Dct
