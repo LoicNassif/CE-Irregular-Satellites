@@ -7,7 +7,7 @@ def main():
                         1.89587112e27, 7.7792e11, 6.9911e7, 0.4, 6.)
     area = jupiter.computeAtot()
     N = jupiter.computeNtot(dhigh=100)
-    print('area = {0:.6e} au^2'.format(area*4.4683677582981e-23))
+    print('area = {0:.6e} m^2'.format(area))
     print('number of particles below Dt = {0:.6e}'.format(N))
 
 
@@ -16,7 +16,7 @@ def main():
     area = jupiter.computeAtot()
     N = jupiter.computeNtot(dhigh=100)
     print("At t = 4.5e9 years")
-    print('area = {0:.6e} au^2'.format(area*4.4683677582981e-23))
+    print('area = {0:.6e} m^2'.format(area))
     print('number of particles below Dt = {0:.6e}'.format(N))
 
 if __name__ == '__main__':

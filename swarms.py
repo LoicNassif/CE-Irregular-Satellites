@@ -78,44 +78,49 @@ class SizeDistribution:
     def Atot_int(self, dlow, dmid, dhigh):
         """Surface area of swarm. Using integration. Output in meters."""
         if (dlow is None) and (dmid is None):
-            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
-                                    self.Dmin, self.Dt)
+            lower = (self.ks_val/(5 - 3*self.qs))*(self.Dt**(5 - 3*self.qs)
+                                                - self.Dmin**(5 - 3*self.qs))
+
         elif dlow is None:
             if dmid < self.Dmin:
                 raise ValueError("Invalid transition size input")
-            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
-                                    self.Dmin, dmid)
+            lower = (self.ks_val/(5 - 3*self.qs))*(dmid**(5 - 3*self.qs)
+                                                - self.Dmin**(5 - 3*self.qs))
         elif dmid is None:
             if dlow > self.Dt:
                 raise ValueError("Invalid min size input")
-            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
-                                    dlow, self.Dt)
+            lower = (self.ks_val/(5 - 3*self.qs))*(self.Dt**(5 - 3*self.qs)
+                                                - dlow**(5 - 3*self.qs))
         else:
             if dlow > dmid:
                 raise ValueError("Invalid min and/or transition size input")
-            lower = integrate.quad(lambda x: self.ks_val*x**(5 - 3*self.qs),
-                                    dlow, dmid)
+            lower = (self.ks_val/(5 - 3*self.qs))*(dmid**(5 - 3*self.qs)
+                                                - dlow**(5 - 3*self.qs))
 
         if (dmid is None) and (dhigh is None):
-            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
-                                    self.Dt, self.Dc)
+            upper = (self.kg_val/(5 - 3*self.qg))*(self.Dc**(5 - 3*self.qg)
+                                                    - self.Dt**(5 - 3*self.qg))
+
         elif dmid is None:
             if dhigh < self.Dt:
                 raise ValueError("Invalid max size input")
-            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
-                                    self.Dt, dhigh)
+            upper = (self.kg_val/(5 - 3*self.qg))*(digh**(5 - 3*self.qg)
+                                                    - self.Dt**(5 - 3*self.qg))
+
         elif dhigh is None:
             if dmid > self.Dc:
                 raise ValueError("Invalid transition size input")
-            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
-                                    dmid, self.Dc)
+            upper = (self.kg_val/(5 - 3*self.qg))*(self.Dc**(5 - 3*self.qg)
+                                                    - dmid**(5 - 3*self.qg))
         else:
             if dmid > dhigh:
                 raise ValueError("Invalid transition and/or max size input")
-            upper = integrate.quad(lambda x: self.kg_val*x**(5 - 3*self.qg),
-                                    dmid, dhigh)
+            upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
+                                                    - dmid**(5 - 3*self.qg))
 
-        return (self.rho*pi/6)*(lower[0] + upper[0])
+        print("lower = {0:.5e}".format((pi/4)*lower))
+        print("upper = {0:.5e}".format((pi/4)*upper))
+        return (pi/4)*(lower + upper)
 
     def Atot_mod(self):
         """A testing function for SI input"""
@@ -126,32 +131,35 @@ class SizeDistribution:
     def Ntot(self, dlow, dmid, dhigh):
         """Number of objects between input specification"""
         if (dlow is None) and (dmid is None):
-            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
-                                    self.Dmin, self.Dt)
+            #print("ks = ", self.ks_val)
+            lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
+                                                - self.Dmin**(3 - 3*self.qs))
         elif dlow is None:
-            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
-                                    self.Dmin, dmid)
+            lower = (self.ks_val/(3 - 3*self.qs))*(dmid**(3 - 3*self.qs)
+                                                - self.Dmin**(3 - 3*self.qs))
         elif dmid is None:
-            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
-                                    dlow, self.Dt)
+            lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
+                                                - dlow**(3 - 3*self.qs))
         else:
-            lower = integrate.quad(lambda x: self.ks_val*x**(2 - 3*self.qs),
-                                    dlow, dmid)
+            lower = (self.ks_val/(3 - 3*self.qs))*(dmid**(3 - 3*self.qs)
+                                                - dlow**(3 - 3*self.qs))
 
         if (dmid is None) and (dhigh is None):
-            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
-                                    self.Dt, self.Dc)
+            upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
+                                                - self.Dt**(3 - 3*self.qg))
         elif dmid is None:
-            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
-                                    self.Dt, dhigh)
+            upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
+                                                - self.Dt**(3 - 3*self.qg))
         elif dhigh is None:
-            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
-                                    dmid, self.Dc)
+            upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
+                                                - dmid**(3 - 3*self.qg))
         else:
-            upper = integrate.quad(lambda x: self.kg_val*x**(2 - 3*self.qg),
-                                    dmid, dhigh)
+            upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
+                                                - dmid**(3 - 3*self.qg))
 
-        return (lower[0] + upper[0])
+        #print("lower = ", lower)
+        #print("upper = ", upper)
+        return (lower + upper)
 
 class CollSwarm:
     """Represents the irregular satellite swarm of a given planet. You can
