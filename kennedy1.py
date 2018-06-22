@@ -203,6 +203,9 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     V = Vol_satellite(eta, eta/2, rH)
     #R_cc = Rcc(vrel, 0.1, X_c, -1.9, Mtot0, rho, Dc, V)
     n = n1(Dc, kg_val)
+    print("kggggggggggggggggg = ", kg_val)
+    print("nnnnnnnnnnnnnnnnnn = ", n)
+    print("Dcccccccccccccccccccc = ", Dc)
     R_cc1 = Rcc1(Mtot0, M_s, 4/pi, Qd, rho, Dc, M_pl, a_pl, eta)
     tnleft = (n/(R_cc1*6))/1e6
 
@@ -416,7 +419,7 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     print("Rcc = {0:.3e} yr^-1".format(R_cc1))
     print("Mass without correction = {0:.3e} Earth-mass".format(Mtot_tttest))
     print("Mass with correction = {0:.3e} Earth-mass".format(Mtot_ttest))
-
+    print("tnleft = {0:.3e} Myr".format(tnleft))
 
 if __name__ == '__main__':
     main(0.001*0.012345679, 100, 150000, 1500, 0.4, 1, 317.46, 1, 5.2, 6.9911e7) #Jupiter

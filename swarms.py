@@ -35,6 +35,8 @@ class SizeDistribution:
         self.Dmin = Dmin; self.Dt = Dt; self.Dc = Dmax
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
+        if Dc is not None:
+            self.Dc = Dc
         if Ma is not None:
             self.Ma = Ma
             self.init_from_mass()
@@ -128,6 +130,10 @@ class SizeDistribution:
         part2 = self.Dmin**(5 - 3*self.qs)*self.Dt**(3*self.qs - 3*self.qg)
         return part1*part2*self.Dc**(3*self.qg - 6)*self.Ma
 
+    def Ntot_mod(self):
+        a = self.kg_val*(2**(3*self.qg - 3) - 1)*self.Dc**(3 - 3*self.qg)
+        return a/(3*self.qg - 3)
+
     def Ntot(self, dlow, dmid, dhigh):
         """Number of objects between input specification"""
         if (dlow is None) and (dmid is None):
@@ -157,8 +163,9 @@ class SizeDistribution:
             upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
                                                 - dmid**(3 - 3*self.qg))
 
-        #print("lower = ", lower)
-        #print("upper = ", upper)
+        print("kg_val = ", self.kg_val)
+        print("lower = ", lower)
+        print("upper = ", upper)
         return (lower + upper)
 
 class CollSwarm:
@@ -182,17 +189,17 @@ class CollSwarm:
     L_s: float; M_s: float; M_pl: float; Dc: float
     a_pl: float; R_pl: float; swarm: SizeDistribution
     Dmin: float; eta: float; fQ: float; f_vrel: float
-    Rcc0: float; tnleft: float; M_init: float;
+    Rcc0: float; tnleft: float; M_init: float; correction: bool
 
     def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
-                rho=1500, fQ=5, f_vrel=4/pi):
+                rho=1500, fQ=5, f_vrel=4/pi, correction=True):
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Ma=M0)
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
-        self.M_init = M0
+        self.M_init = M0; self.correction = correction
 
     def computeDmin(self):
         """Compute the minimum sized object in the distribution."""
@@ -235,12 +242,16 @@ class CollSwarm:
     def computetnleft(self):
         """Compute the time at which the first object is stranded."""
         Xc = self.computeXc()
-        nval = self.computeNtot()#dlow=Xc*self.Dc, dmid=Xc*self.Dc)#, dhigh=self.Dc)
+        print("Xc = {0:.3e}".format(Xc))
+        print("Dc b4 nval = {0:.3e}".format(self.Dc))
+        nval = self.swarm.Ntot_mod()
+        #nval = self.computeNtot(dlow=Xc*self.Dc, dmid=Xc*self.Dc, dhigh=self.Dc)
+        print("nval = {0:.3e}".format(nval))
         return nval/(self.Rcc0*self.Nstr)
 
     def computeDc(self, t):
         """Compute the new Dc after stranding time."""
-        if t < self.tnleft:
+        if (t < self.tnleft) or (not self.correction):
             return self.Dmax
         else:
             a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(1/1.2)
@@ -259,6 +270,6 @@ class CollSwarm:
         Dct = self.computeDc(t)
         #print("Dct = {0:.3e}".format(Dct))
         Mt = self.computeMtot(t)
-        print("Mt = {0:.3e}".format(Mt/5.972e24))
-        self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Dct, Ma=Mt)
+        #print("Mt = {0:.3e}".format(Mt/5.972e24))
+        self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Dc=Dct, Ma=Mt)
         self.Dc = Dct
