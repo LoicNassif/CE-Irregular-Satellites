@@ -64,10 +64,10 @@ class SizeDistribution:
         """description TBD"""
         self.kg_val = self.Dt**(3*self.qg - 3*self.qs)*self.ks_val
 
-    def Mtot(self, Rcc0, t, tnleft, A):
+    def Mtot(self, Rcc0, t, tnleft, A, M_init):
         """The total mass of the swarm at some given time t."""
         if t <= tnleft:
-            return (self.Ma)/(1 + Rcc0*t)
+            return (M_init)/(1 + Rcc0*t)
         else:
             return A*self.Dc**3
 
@@ -182,7 +182,7 @@ class CollSwarm:
     L_s: float; M_s: float; M_pl: float; Dc: float
     a_pl: float; R_pl: float; swarm: SizeDistribution
     Dmin: float; eta: float; fQ: float; f_vrel: float
-    Rcc0: float; tnleft: float
+    Rcc0: float; tnleft: float; M_init: float;
 
     def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
                 rho=1500, fQ=5, f_vrel=4/pi):
@@ -192,6 +192,7 @@ class CollSwarm:
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Ma=M0)
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
+        self.M_init = M0
 
     def computeDmin(self):
         """Compute the minimum sized object in the distribution."""
@@ -247,9 +248,9 @@ class CollSwarm:
 
     def computeMtot(self, t):
         """Compute the total mass at a given time t."""
-        y0 = self.swarm.Mtot(self.Rcc0, t, inf, 0)
+        y0 = self.swarm.Mtot(self.Rcc0, t, inf, 0, self.M_init)
         A = y0/self.Dmax**3
-        Mt = self.swarm.Mtot(self.Rcc0, t, self.tnleft, A)
+        Mt = self.swarm.Mtot(self.Rcc0, t, self.tnleft, A, self.M_init)
 
         return Mt
 
