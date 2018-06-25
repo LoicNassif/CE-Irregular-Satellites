@@ -168,6 +168,10 @@ class SizeDistribution:
         print("upper = ", upper)
         return (lower + upper)
 
+    def n(self, D):
+        """TBA"""
+        return self.ks_val*D**(2 - 3*self.qs) + self.kg_val*D**(2 - 3*self.qg)
+
 class CollSwarm:
     """Represents the irregular satellite swarm of a given planet. You can
     compute the following information using the following methods:
@@ -214,6 +218,10 @@ class CollSwarm:
     def computeNtot(self, dlow=None, dmid=None, dhigh=None):
         """Return the distribution's number of particles."""
         return self.swarm.Ntot(dlow, dmid, dhigh)
+
+    def computen(self, D):
+        """TBA"""
+        return self.swarm.n(D)
 
     def computeQd(self, D):
         """Compute the planetesimal strength of an object."""
