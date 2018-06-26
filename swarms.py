@@ -262,7 +262,7 @@ class CollSwarm:
         if (t < self.tnleft) or (not self.correction):
             return self.Dmax
         else:
-            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(1/1.2)
+            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(1.2)
             return self.Dmax/a
 
     def computeMtot(self, t):

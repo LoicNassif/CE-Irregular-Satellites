@@ -4,8 +4,20 @@ import matplotlib.pyplot as plt
 
 #main()
 def main():
+    # Saturn config
+    #M0 = 7.37307e19; Dt = 100.; Dmax = 250000.; L_s = 3.828e26;
+    #M_s = 1.989e30; M_pl = 5.683e26; a_pl = 1.433537e12
+    #R_pl = 5.8232e7; eta = 0.3; Nstr = 2.
+
+    # Neptune config
+    #M0 = 7.37307e19; Dt = 100.; Dmax = 250000.; L_s = 3.828e26;
+    #M_s = 1.989e30; M_pl = 1.0243e26; a_pl = 4.50439e12
+    #R_pl = 2.4622e7; eta = 0.2; Nstr = 6.
+
+    #M_pl = 1.89587112e27
+    # Jupiter config
     M0 = 7.37307e19; Dt = 100.; Dmax = 150000.; L_s = 3.828e26;
-    M_s = 1.989e30; M_pl = 1.89587112e27; a_pl = 7.7792e11
+    M_s = 1.989e30; M_pl = 1.0243e26; a_pl = 7.7792e11
     R_pl = 6.9911e7; eta = 0.4; Nstr = 6.
     jupiter = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr)
     jupiter3 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
@@ -29,10 +41,10 @@ def main():
     plt.axvline(jupiter.tnleft, color='g', ls='--', label="first stranded object")
     plt.xlabel("time [yr]")
     plt.ylabel("area [AU^2]")
-    plt.title("Area of Circumplanetary Swarm")
+    plt.title("Area of Circumplanetary Swarm - Neptune-mass Jupiter")
     plt.legend()
     plt.xlim([2e5, 1e10])
-    plt.ylim([5e-9, 1e-5])
+    plt.ylim([5e-10, 1e-5])
     plt.show()
 
     # jupiter4 = CollSwarm(7.37307e19, 100., 150000., 3.828e26, 1.989e30,
