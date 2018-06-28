@@ -31,7 +31,7 @@ class SizeDistribution:
     Dmax: float; rho: float; qs: float; sigma0: float
     kg_val: float; ks_val: float; qg: float
 
-    def __init__(self, Dmin, Dt, Dmax, Dc=None, Ma=None, sigma0=None, rho=1500, qs=1.9, qg=1.7):
+    def __init__(self, Dmin, Dmax, Dc=None, Ma=None, sigma0=None, Dt=100, rho=1500, qs=1.9, qg=1.7):
         self.Dmin = Dmin; self.Dt = Dt; self.Dc = Dmax
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
@@ -66,59 +66,44 @@ class SizeDistribution:
         """description TBD"""
         self.kg_val = self.Dt**(3*self.qg - 3*self.qs)*self.ks_val
 
-    def Mtot(self, Rcc0, t, tnleft, A, M_init):
+    def Mtot(self, dlow=None, dhigh=None):
+        """The total mass of the swarm"""
+        if dlow is None:
+            dlow = self.Dmin
+        if dhigh is None:
+            dhigh = self.Dc
+
+        lower = (self.ks_val/(6 - 3*self.qs))*(self.Dt**(6 - 3*self.qs)
+                                            - dlow**(6 - 3*self.qs))
+
+        upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
+                                            - self.Dt**(6 - 3*self.qg))
+
+        return self.rho*pi*6*(lower + upper)
+
+    def DMtot(self, Rcc0, t, tnleft, A, M_init):
         """The total mass of the swarm at some given time t."""
         if t <= tnleft:
             return (M_init)/(1 + Rcc0*t)
         else:
             return A*self.Dc**3
 
-    def Atot(self):
-        """Surface area of swarm. Output in AU"""
+    def Atot_mod2(self):
+        """Surface area of swarm. Output in AU. Testing function"""
         return (pi/4)*265.3*self.ks_val*(self.Dmin**(5 - 3*self.qs)/(3*self.qs - 5))
 
-    def Atot_int(self, dlow, dmid, dhigh):
+    def Atot(self, dlow=None, dhigh=None):
         """Surface area of swarm. Using integration. Output in meters."""
-        if (dlow is None) and (dmid is None):
-            lower = (self.ks_val/(5 - 3*self.qs))*(self.Dt**(5 - 3*self.qs)
-                                                - self.Dmin**(5 - 3*self.qs))
+        if dlow is None:
+            dlow = self.Dmin
+        if dhigh is None:
+            dhigh = self.Dc
 
-        elif dlow is None:
-            if dmid < self.Dmin:
-                raise ValueError("Invalid transition size input")
-            lower = (self.ks_val/(5 - 3*self.qs))*(dmid**(5 - 3*self.qs)
-                                                - self.Dmin**(5 - 3*self.qs))
-        elif dmid is None:
-            if dlow > self.Dt:
-                raise ValueError("Invalid min size input")
-            lower = (self.ks_val/(5 - 3*self.qs))*(self.Dt**(5 - 3*self.qs)
-                                                - dlow**(5 - 3*self.qs))
-        else:
-            if dlow > dmid:
-                raise ValueError("Invalid min and/or transition size input")
-            lower = (self.ks_val/(5 - 3*self.qs))*(dmid**(5 - 3*self.qs)
-                                                - dlow**(5 - 3*self.qs))
+        lower = (self.ks_val/(5 - 3*self.qs))*(self.Dt**(5 - 3*self.qs)
+                                            - dlow**(5 - 3*self.qs))
 
-        if (dmid is None) and (dhigh is None):
-            upper = (self.kg_val/(5 - 3*self.qg))*(self.Dc**(5 - 3*self.qg)
-                                                    - self.Dt**(5 - 3*self.qg))
-
-        elif dmid is None:
-            if dhigh < self.Dt:
-                raise ValueError("Invalid max size input")
-            upper = (self.kg_val/(5 - 3*self.qg))*(digh**(5 - 3*self.qg)
-                                                    - self.Dt**(5 - 3*self.qg))
-
-        elif dhigh is None:
-            if dmid > self.Dc:
-                raise ValueError("Invalid transition size input")
-            upper = (self.kg_val/(5 - 3*self.qg))*(self.Dc**(5 - 3*self.qg)
-                                                    - dmid**(5 - 3*self.qg))
-        else:
-            if dmid > dhigh:
-                raise ValueError("Invalid transition and/or max size input")
-            upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
-                                                    - dmid**(5 - 3*self.qg))
+        upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
+                                            - self.Dt**(5 - 3*self.qg))
 
         #print("lower = {0:.5e}".format((pi/4)*lower))
         #print("upper = {0:.5e}".format((pi/4)*upper))
@@ -134,34 +119,18 @@ class SizeDistribution:
         a = self.kg_val*(2**(3*self.qg - 3) - 1)*self.Dc**(3 - 3*self.qg)
         return a/(3*self.qg - 3)
 
-    def Ntot(self, dlow, dmid, dhigh):
+    def Ntot(self, dlow, dhigh):
         """Number of objects between input specification"""
-        if (dlow is None) and (dmid is None):
-            #print("ks = ", self.ks_val)
-            lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
-                                                - self.Dmin**(3 - 3*self.qs))
-        elif dlow is None:
-            lower = (self.ks_val/(3 - 3*self.qs))*(dmid**(3 - 3*self.qs)
-                                                - self.Dmin**(3 - 3*self.qs))
-        elif dmid is None:
-            lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
-                                                - dlow**(3 - 3*self.qs))
-        else:
-            lower = (self.ks_val/(3 - 3*self.qs))*(dmid**(3 - 3*self.qs)
-                                                - dlow**(3 - 3*self.qs))
+        if dlow is None:
+            dlow = self.Dmin
+        if dhigh is None:
+            dhigh = self.Dc
 
-        if (dmid is None) and (dhigh is None):
-            upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
-                                                - self.Dt**(3 - 3*self.qg))
-        elif dmid is None:
-            upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
-                                                - self.Dt**(3 - 3*self.qg))
-        elif dhigh is None:
-            upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
-                                                - dmid**(3 - 3*self.qg))
-        else:
-            upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
-                                                - dmid**(3 - 3*self.qg))
+        lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
+                                            - dlow**(3 - 3*self.qs))
+
+        upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
+                                            - self.Dt**(3 - 3*self.qg))
 
         print("kg_val = ", self.kg_val)
         print("lower = ", lower)
@@ -201,7 +170,7 @@ class CollSwarm:
         self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
-        self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Ma=M0)
+        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Ma=M0)
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.M_init = M0; self.correction = correction
 
@@ -213,7 +182,7 @@ class CollSwarm:
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None):
         """Compute the distribution's surface area."""
-        return self.swarm.Atot_int(dlow, dmid, dhigh)
+        return self.swarm.Atot(dlow, dhigh)
 
     def computeNtot(self, dlow=None, dmid=None, dhigh=None):
         """Return the distribution's number of particles."""
@@ -221,7 +190,9 @@ class CollSwarm:
 
     def computen(self, D):
         """TBA"""
-        return self.swarm.n(D)
+        a = self.swarm.n(D)
+        #print(a)
+        return a
 
     def computeQd(self, D):
         """Compute the planetesimal strength of an object."""
@@ -250,8 +221,8 @@ class CollSwarm:
     def computetnleft(self):
         """Compute the time at which the first object is stranded."""
         Xc = self.computeXc()
-        print("Xc = {0:.3e}".format(Xc))
-        print("Dc b4 nval = {0:.3e}".format(self.Dc))
+        #print("Xc = {0:.3e}".format(Xc))
+        #print("Dc b4 nval = {0:.3e}".format(self.Dc))
         nval = self.swarm.Ntot_mod()
         #nval = self.computeNtot(dlow=Xc*self.Dc, dmid=Xc*self.Dc, dhigh=self.Dc)
         print("nval = {0:.3e}".format(nval))
@@ -267,9 +238,9 @@ class CollSwarm:
 
     def computeMtot(self, t):
         """Compute the total mass at a given time t."""
-        y0 = self.swarm.Mtot(self.Rcc0, t, inf, 0, self.M_init)
+        y0 = self.swarm.DMtot(self.Rcc0, t, inf, 0, self.M_init)
         A = y0/self.Dmax**3
-        Mt = self.swarm.Mtot(self.Rcc0, t, self.tnleft, A, self.M_init)
+        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, A, self.M_init)
 
         return Mt
 
@@ -279,5 +250,5 @@ class CollSwarm:
         #print("Dct = {0:.3e}".format(Dct))
         Mt = self.computeMtot(t)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
-        self.swarm = SizeDistribution(self.Dmin, self.Dt, self.Dmax, Dc=Dct, Ma=Mt)
+        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, Ma=Mt)
         self.Dc = Dct
