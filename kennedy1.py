@@ -370,7 +370,7 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     plt.title('area')
     plt.loglog(timerangea, area_range)
     plt.loglog(timerangea, areattt_range)
-    plt.xlim([2e5, 1e10])
+    plt.xlim([2e5, 9e9])
     plt.ylim([5e-9, 1e-5])
     plt.show()
 

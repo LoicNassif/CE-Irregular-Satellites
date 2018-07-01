@@ -79,7 +79,7 @@ class SizeDistribution:
         upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
                                             - self.Dt**(6 - 3*self.qg))
 
-        return self.rho*pi*6*(lower + upper)
+        return self.rho*pi*(lower + upper)/6
 
     def DMtot(self, Rcc0, t, tnleft, A, M_init):
         """The total mass of the swarm at some given time t."""
@@ -171,8 +171,9 @@ class CollSwarm:
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Ma=M0)
+        self.M_init = M0;
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
-        self.M_init = M0; self.correction = correction
+        self.correction = correction
 
     def computeDmin(self):
         """Compute the minimum sized object in the distribution."""
@@ -206,6 +207,15 @@ class CollSwarm:
             ((self.a_pl/1.496e11)*self.eta)**4.13)
         return 1.3e7*(a/b)
 
+    def computeRCC2(self):
+        """Compute RCC using equation 5 from Kennedy instead of equation 7."""
+        vrel = self.computeVrel()
+        Xc = self.computeXc()
+        V = 4*pi*(self.eta**2)*(self.eta/2)*((self.R_pl/1.496e11)**3)*0.866
+        a = (6 - 3*self.swarm.qg)/(3*self.swarm.qs - 5)
+        b = (vrel*0.1*(Xc**-1.9)*self.M_init)/(self.rho*(self.Dc/1000)*V)
+        return 8.4e-5*a*b
+
     def computeVrel(self):
         """Compute the mean relative velocity of collisions."""
         a = (4/pi)*516*(self.M_pl/5.972e24)**(1/3)*(self.M_s/1.989e30)**(1/6)
@@ -220,11 +230,7 @@ class CollSwarm:
 
     def computetnleft(self):
         """Compute the time at which the first object is stranded."""
-        Xc = self.computeXc()
-        #print("Xc = {0:.3e}".format(Xc))
-        #print("Dc b4 nval = {0:.3e}".format(self.Dc))
         nval = self.swarm.Ntot_mod()
-        #nval = self.computeNtot(dlow=Xc*self.Dc, dmid=Xc*self.Dc, dhigh=self.Dc)
         print("nval = {0:.3e}".format(nval))
         return nval/(self.Rcc0*self.Nstr)
 
@@ -233,7 +239,7 @@ class CollSwarm:
         if (t < self.tnleft) or (not self.correction):
             return self.Dmax
         else:
-            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(1.2)
+            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(1/1.2)
             return self.Dmax/a
 
     def computeMtot(self, t):
