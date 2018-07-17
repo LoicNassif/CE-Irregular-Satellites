@@ -6,7 +6,7 @@ EVERY INPUT MUST BE IN SI UNITS
 
 IN DEVELOPMENT"""
 
-from numpy import pi, inf
+from numpy import pi, inf, exp
 import scipy.integrate as integrate
 
 class SizeDistribution:
@@ -161,17 +161,17 @@ class CollSwarm:
     Dt: float; Dmax: float; Nstr: float
     L_s: float; M_s: float; M_pl: float; Dc: float
     a_pl: float; R_pl: float; swarm: SizeDistribution
-    Dmin: float; eta: float; fQ: float; f_vrel: float
+    Dmin: float; eta: float; fQ: float; f_vrel: float; d_pl: float
     Rcc0: float; tnleft: float; M_init: float; correction: bool
 
-    def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
+    def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
                 rho=1500, fQ=5, f_vrel=4/pi, correction=True):
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Ma=M0)
-        self.M_init = M0;
+        self.M_init = M0; self.d_pl = d_pl
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
 
@@ -199,6 +199,57 @@ class CollSwarm:
         """Compute the planetesimal strength of an object."""
         return 0.1*self.rho*(D/1000)**1.26/self.fQ
 
+    def computeT(self, L, dist):
+        sig = 5.670367e-8 #Stefan-Boltzmann constant
+        return (L/(16*pi*sig*(dist)**2))**(1./4.)
+
+    def computeBmu(self, lamb, T):
+        c = 299792458 #speed of light
+        k_B = 1.38064852e-23 #Boltzmann's constant
+        h = 6.626070040e-34 #Plank's constant
+        a = 2*h*(c/lamb)**3/c**2
+        b = 1/(exp(h*(c/lamb)/(k_B*T)) - 1)
+        return a*b
+
+    def computeFth(self, lamb, planet=False, swarm=False):
+        if planet:
+            T = self.computeT(self.L_s, self.d_pl)
+            Bmu = self.computeBmu(lamb, T)
+            Fth = Bmu*pi*(self.R_pl/(self.d_pl))**2
+            return Fth
+        if swarm:
+            T = self.computeT(self.L_s, self.a_pl)
+            Bmu = self.computeBmu(lamb, T)
+            A = self.computeAtot()
+            Fth = (0.00021/lamb)*(Bmu*A)/(self.a_pl**2)
+            return Fth
+
+    def computeFstar(self, Bmu, T, planet=False, swarm=False):
+        sig = 5.670367e-8 #Stefan-Boltzmann constant
+        a = 3.827e26*self.L_s*Bmu
+        if planet:
+            b = 4*sig*(T**4)*((self.d_pl)**2)
+            return a/b
+        if swarm:
+            b = 4*sig*(T**4)*((self.a_pl)**2)
+            return a/b
+
+    def computeFs(self, lamb, g, Q, planet=False, swarm=False):
+        if planet:
+            T = self.computeT(self.L_s, self.d_pl)
+            Bmu = self.computeBmu(lamb, T)
+            Fstar = self.computeFstar(Bmu, T, planet, swarm)
+            a = Fstar*self.R_pl**2*g*Q
+            b = (self.d_pl)**2
+            return a/b
+        if swarm:
+            T = self.computeT(self.L_s, self.a_pl)
+            Bmu = self.computeBmu(lamb, T)
+            Fstar = self.computeFstar(Bmu, T, planet, swarm)
+            a = Fstar*self.computeAtot()*g*Q
+            b = pi*(self.a_pl)**2
+            return a/b
+
     def computeRCC(self):
         """Compute the rate of collision."""
         Qd = self.computeQd(self.Dmax)
@@ -206,6 +257,14 @@ class CollSwarm:
         b = (Qd**0.63*self.rho*(self.Dmax/1000)*(self.M_pl/5.972e24)**0.24*
             ((self.a_pl/1.496e11)*self.eta)**4.13)
         return 1.3e7*(a/b)
+
+    def computeRCC5(self):
+        """Compute the rate of collision."""
+        Qd = self.computeQd(self.Dmax)
+        a = (self.swarm.Ma)*(self.M_s)**1.38*self.f_vrel**2.27
+        b = (Qd**0.63*self.rho*(self.Dmax)*(self.M_pl)**0.24*
+            ((self.a_pl)*self.eta)**4.13)
+        return 39.16*(a/b)
 
     def computeRCC2(self):
         """Compute RCC using equation 5 from Kennedy instead of equation 7."""

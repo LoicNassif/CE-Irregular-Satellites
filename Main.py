@@ -17,10 +17,10 @@ def main():
     # Jupiter config
     M0 = 7.37307e19; Dt = 100.; Dmax = 150000.; L_s = 3.828e26;
     M_s = 1.989e30; M_pl = 1.89587112e27; a_pl = 7.7792e11
-    R_pl = 6.9911e7; eta = 0.4; Nstr = 6.
+    R_pl = 6.9911e7; eta = 0.4; Nstr = 6.; d_pl = a_pl
 
-    jupiter = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr)
-    jupiter3 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
+    jupiter = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl)
+    jupiter3 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
                             correction=False)
 
     time = linspace(0, 1e10, 50000)
@@ -47,7 +47,7 @@ def main():
     plt.ylim([5e-9, 1e-5])
     plt.show()
 
-    jupiter4 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
+    jupiter4 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
                         correction=True)
 
     drange = linspace(0.1, 250000, 5000)
@@ -66,6 +66,37 @@ def main():
         plt.loglog(drange, num_distribution[i])
     plt.xlim([5000, 200000])
     plt.ylim([1e-5, 1e-2])
+    plt.show()
+
+    jupiter5 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
+                        correction=True)
+
+    jupiter5.updateSwarm(4.5e9)
+
+    waverange = linspace(1e-7, 0.001, 200)
+    Fth_planet = jupiter5.computeFth(waverange, planet=True)
+    Fth_swarm = jupiter5.computeFth(waverange, swarm=True)
+    Fs_planet = jupiter5.computeFs(waverange, 1., 0.52, planet=True)
+    Fs_swarm = jupiter5.computeFs(waverange, 0.32, 0.08, swarm=True)
+
+    plt.figure(3)
+    plt.subplot(211)
+    plt.title('F scattered planet')
+    plt.loglog(waverange, Fs_planet)
+    plt.subplot(212)
+    plt.title('F thermal planet')
+    plt.loglog(waverange, Fth_planet)
+    plt.tight_layout()
+    plt.show()
+
+    plt.figure(4)
+    plt.subplot(211)
+    plt.title('F scattered dust')
+    plt.loglog(waverange, Fs_swarm)
+    plt.subplot(212)
+    plt.title('F thermal dust')
+    plt.loglog(waverange, Fth_swarm)
+    plt.tight_layout()
     plt.show()
 
 if __name__ == '__main__':

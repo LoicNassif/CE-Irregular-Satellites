@@ -131,7 +131,7 @@ def F_th(spec, A, d):
 #Effective temperature
 def T(L, a_pl):
     #return (L/(A*sig))**0.25
-    return (L/(16*pi*sig*(1.5e11*a_pl)**2))**(1/4)
+    return (L/(16*pi*sig*(1.5e11*a_pl)**2))**(1./4.)
 
 def F_th_planet(lamb, L_s, R_pl, d_pl):
     T_planet = T(3.827e26*L_s, d_pl)
@@ -211,8 +211,8 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
 
     M_tott = Mtott(Mtot0, R_cc1, 4.5e9, 1e111, 1e10, 0)
     Dc_t = Dct(Dc, 1e6*tnleft, 4.5e9)
-    kg_valt = kg(M_tott, Dc_t, rho)
-    ks_valt = ks1(kg_valt, Dt)
+    kg_valt = kg(M_tott, Dmax, rho)
+    ks_valt = ks1(Dt, kg_valt)
     areat = Atot(ks_valt, Dmin/1e6)
     tcol = t_col(eta, a_pl, M_pl, M_s, areat)
     xpr1 = Xpr1(rho, Dmin, areat, M_s, a_pl, eta, M_pl, L_s)
@@ -221,6 +221,7 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     print('dmin ', Dmin)
     print('Dt ', Dt)
     print('Dc ', Dc)
+    print("Atotttttttttttt = ", areat)
 
     t_dust1, bmu_dust1, fth_dust1 = F_th_dust(1e-6, L_s, areat, a_pl)
     t_planet1, bmu_planet1, fth_planet1 = F_th_planet(1e-6, L_s, R_pl, a_pl)
@@ -374,34 +375,34 @@ def main(Mtot0, Dt, Dc, rho, eta, L_s, M_pl, M_s, a_pl, R_pl):
     plt.ylim([5e-9, 1e-5])
     plt.show()
 
-    # plt.figure(4)
-    # plt.subplot(211)
-    # plt.title('F scattered planet')
-    # plt.loglog(waverange, F_scat_planet)
-    # plt.subplot(212)
-    # plt.title('F thermal planet')
-    # plt.loglog(waverange, F_th_pl)
-    # plt.tight_layout()
-    # plt.show()
-    #
-    # plt.figure(7)
-    # plt.subplot(211)
-    # plt.title('F scattered dust')
-    # plt.loglog(waverange, F_scat_dust)
-    # plt.subplot(212)
-    # plt.title('F thermal dust')
-    # plt.loglog(waverange, F_th_dst)
-    # plt.tight_layout()
-    # plt.show()
-
-    plt.figure(2)
-    plt.title('number of objects')
-    for i in range(len(sup_nrange)):
-        plt.loglog(drange, sup_nrange[i], label=repr(i))
-        plt.xlim([5000, 200000])
-        plt.ylim([1e-5, 1e-2])
-        plt.legend()
+    plt.figure(4)
+    plt.subplot(211)
+    plt.title('F scattered planet')
+    plt.loglog(waverange, F_scat_planet)
+    plt.subplot(212)
+    plt.title('F thermal planet')
+    plt.loglog(waverange, F_th_pl)
+    plt.tight_layout()
     plt.show()
+
+    plt.figure(7)
+    plt.subplot(211)
+    plt.title('F scattered dust')
+    plt.loglog(waverange, F_scat_dust)
+    plt.subplot(212)
+    plt.title('F thermal dust')
+    plt.loglog(waverange, F_th_dst)
+    plt.tight_layout()
+    plt.show()
+
+    # plt.figure(2)
+    # plt.title('number of objects')
+    # for i in range(len(sup_nrange)):
+    #     plt.loglog(drange, sup_nrange[i], label=repr(i))
+    #     plt.xlim([5000, 200000])
+    #     plt.ylim([1e-5, 1e-2])
+    #     plt.legend()
+    # plt.show()
 
     Dcttest = Dct(Dmax, 1e6*tnleft, 4.5e9)
     Mtot_ttest = Mtott(Mtot00, R_cc1, 4.5e9, 1e6*tnleft, A, Dcttest)
