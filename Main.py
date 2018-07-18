@@ -68,7 +68,7 @@ def main():
     plt.ylim([1e-5, 1e-2])
     plt.show()
 
-    jupiter5 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
+    jupiter5 = CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, 3.086e17,
                         correction=True)
 
     jupiter5.updateSwarm(4.5e9)
@@ -80,23 +80,17 @@ def main():
     Fs_swarm = jupiter5.computeFs(waverange, 0.32, 0.08, swarm=True)
 
     plt.figure(3)
-    plt.subplot(211)
-    plt.title('F scattered planet')
-    plt.loglog(waverange, Fs_planet)
-    plt.subplot(212)
-    plt.title('F thermal planet')
-    plt.loglog(waverange, Fth_planet)
-    plt.tight_layout()
+    plt.title('Planet Flux')
+    plt.loglog(waverange, Fs_planet, label="Scattered")
+    plt.loglog(waverange, Fth_planet, label="Thermal")
+    plt.legend()
     plt.show()
 
     plt.figure(4)
-    plt.subplot(211)
-    plt.title('F scattered dust')
-    plt.loglog(waverange, Fs_swarm)
-    plt.subplot(212)
-    plt.title('F thermal dust')
-    plt.loglog(waverange, Fth_swarm)
-    plt.tight_layout()
+    plt.title('Dust Flux')
+    plt.loglog(waverange, Fs_swarm, label="Scattered")
+    plt.loglog(waverange, Fth_swarm, label="Thermal")
+    plt.legend();
     plt.show()
 
 if __name__ == '__main__':

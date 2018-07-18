@@ -213,22 +213,22 @@ class CollSwarm:
 
     def computeFth(self, lamb, planet=False, swarm=False):
         if planet:
-            T = self.computeT(self.L_s, self.d_pl)
+            T = self.computeT(self.L_s, self.a_pl)
             Bmu = self.computeBmu(lamb, T)
             Fth = Bmu*pi*(self.R_pl/(self.d_pl))**2
             return Fth
         if swarm:
-            T = self.computeT(self.L_s, self.a_pl)
+            T = 278.3*(self.L_s/3.828e26)**(1./4.)/(6.68459e-12*self.a_pl)**0.5
             Bmu = self.computeBmu(lamb, T)
             A = self.computeAtot()
-            Fth = (0.00021/lamb)*(Bmu*A)/(self.a_pl**2)
+            Fth = (0.00021/lamb)*(Bmu*A)/(self.d_pl**2)
             return Fth
 
     def computeFstar(self, Bmu, T, planet=False, swarm=False):
         sig = 5.670367e-8 #Stefan-Boltzmann constant
-        a = 3.827e26*self.L_s*Bmu
+        a = self.L_s*Bmu
         if planet:
-            b = 4*sig*(T**4)*((self.d_pl)**2)
+            b = 4*sig*(T**4)*((self.a_pl)**2)
             return a/b
         if swarm:
             b = 4*sig*(T**4)*((self.a_pl)**2)
@@ -236,18 +236,18 @@ class CollSwarm:
 
     def computeFs(self, lamb, g, Q, planet=False, swarm=False):
         if planet:
-            T = self.computeT(self.L_s, self.d_pl)
+            T = 8620
             Bmu = self.computeBmu(lamb, T)
             Fstar = self.computeFstar(Bmu, T, planet, swarm)
             a = Fstar*self.R_pl**2*g*Q
             b = (self.d_pl)**2
             return a/b
         if swarm:
-            T = self.computeT(self.L_s, self.a_pl)
+            T = 8620
             Bmu = self.computeBmu(lamb, T)
             Fstar = self.computeFstar(Bmu, T, planet, swarm)
             a = Fstar*self.computeAtot()*g*Q
-            b = pi*(self.a_pl)**2
+            b = pi*(self.d_pl)**2
             return a/b
 
     def computeRCC(self):
@@ -290,7 +290,6 @@ class CollSwarm:
     def computetnleft(self):
         """Compute the time at which the first object is stranded."""
         nval = self.swarm.Ntot_mod()
-        print("nval = {0:.3e}".format(nval))
         return nval/(self.Rcc0*self.Nstr)
 
     def computeDc(self, t):
