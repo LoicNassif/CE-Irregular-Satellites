@@ -27,18 +27,18 @@ class SizeDistribution:
     qs: size distribution slope for objects of size < Dt
     qg: size distribution slope for objects of size > Dt
     """
-    Dmin: float; Dt: float; Dc: float; Ma: float
+    Dmin: float; Dt: float; Dc: float; M0: float
     Dmax: float; rho: float; qs: float; sigma0: float
     kg_val: float; ks_val: float; qg: float
 
-    def __init__(self, Dmin, Dmax, Dc=None, Ma=None, sigma0=None, Dt=100, rho=1500, qs=1.9, qg=1.7):
+    def __init__(self, Dmin, Dmax, Dc=None, M0=None, sigma0=None, Dt=100, rho=1500, qs=1.9, qg=1.7):
         self.Dmin = Dmin; self.Dt = Dt; self.Dc = Dmax
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
         if Dc is not None:
             self.Dc = Dc
-        if Ma is not None:
-            self.Ma = Ma
+        if M0 is not None:
+            self.M0 = M0
             self.init_from_mass()
         elif sigma0 is not None:
             self.sigma0 = sigma0
@@ -48,7 +48,7 @@ class SizeDistribution:
 
     def init_from_mass(self):
         """initialize from the specified mass"""
-        self.kg_val = (self.Ma*(6/(pi*self.rho))*(6 - 3*self.qg)
+        self.kg_val = (self.M0*(6/(pi*self.rho))*(6 - 3*self.qg)
                         *self.Dc**(3*self.qg - 6))
         self.kg_to_ks()
 
@@ -113,7 +113,7 @@ class SizeDistribution:
         """A testing function for SI input"""
         part1 = (3/2)*(1/self.rho)*((6 - 3*self.qg)/(3*self.qs - 5))
         part2 = self.Dmin**(5 - 3*self.qs)*self.Dt**(3*self.qs - 3*self.qg)
-        return part1*part2*self.Dc**(3*self.qg - 6)*self.Ma
+        return part1*part2*self.Dc**(3*self.qg - 6)*self.M0
 
     def Ntot_mod(self):
         a = self.kg_val*(2**(3*self.qg - 3) - 1)*self.Dc**(3 - 3*self.qg)
@@ -147,7 +147,7 @@ class CollSwarm:
         -computeAtot(): computes the size distribution's surface area
 
     === Attributes ===
-    Ma: initial mass of the swarm [kg]
+    M0: initial mass of the swarm [kg]
     Dt: transition particle size of the swarm [m]
     Dmax: maximum particle size of the swarm [m]
     L_s: luminosity of the primary [W] (3.828e26 W = 1 solar lum)
@@ -170,7 +170,7 @@ class CollSwarm:
         self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
-        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Ma=M0)
+        self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0)
         self.M_init = M0; self.d_pl = d_pl
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
@@ -192,7 +192,6 @@ class CollSwarm:
     def computen(self, D):
         """TBA"""
         a = self.swarm.n(D)
-        #print(a)
         return a
 
     def computeQd(self, D):
@@ -224,15 +223,11 @@ class CollSwarm:
             Fth = (0.00021/lamb)*(Bmu*A)/(self.d_pl**2)
             return Fth
 
-    def computeFstar(self, Bmu, T, planet=False, swarm=False):
+    def computeFstar(self, Bmu, T):
         sig = 5.670367e-8 #Stefan-Boltzmann constant
         a = self.L_s*Bmu
-        if planet:
-            b = 4*sig*(T**4)*((self.a_pl)**2)
-            return a/b
-        if swarm:
-            b = 4*sig*(T**4)*((self.a_pl)**2)
-            return a/b
+        b = 4*sig*(T**4)*((self.a_pl)**2)
+        return a/b
 
     def stellarTemp(self):
         Ms = self.M_s/1.989e30
@@ -252,17 +247,15 @@ class CollSwarm:
             return 3e3
 
     def computeFs(self, lamb, g, Q, planet=False, swarm=False):
+        T = self.stellarTemp()
+        Bmu = self.computeBmu(lamb, T)
+        Fstar = self.computeFstar(Bmu, T)
+
         if planet:
-            T = self.stellarTemp()
-            Bmu = self.computeBmu(lamb, T)
-            Fstar = self.computeFstar(Bmu, T, planet, swarm)
             a = Fstar*self.R_pl**2*g*Q
             b = (self.d_pl)**2
             return a/b
         if swarm:
-            T = self.stellarTemp()
-            Bmu = self.computeBmu(lamb, T)
-            Fstar = self.computeFstar(Bmu, T, planet, swarm)
             a = Fstar*self.computeAtot()*g*Q
             b = pi*(self.d_pl)**2
             return a/b
@@ -270,7 +263,7 @@ class CollSwarm:
     def computeRCC(self):
         """Compute the rate of collision."""
         Qd = self.computeQd(self.Dmax)
-        a = (self.swarm.Ma/5.972e24)*(self.M_s/1.989e30)**1.38*self.f_vrel**2.27
+        a = (self.swarm.M0/5.972e24)*(self.M_s/1.989e30)**1.38*self.f_vrel**2.27
         b = (Qd**0.63*self.rho*(self.Dmax/1000)*(self.M_pl/5.972e24)**0.24*
             ((self.a_pl/1.496e11)*self.eta)**4.13)
         return 1.3e7*(a/b)
@@ -278,7 +271,7 @@ class CollSwarm:
     def computeRCC5(self):
         """Compute the rate of collision."""
         Qd = self.computeQd(self.Dmax)
-        a = (self.swarm.Ma)*(self.M_s)**1.38*self.f_vrel**2.27
+        a = (self.swarm.M0)*(self.M_s)**1.38*self.f_vrel**2.27
         b = (Qd**0.63*self.rho*(self.Dmax)*(self.M_pl)**0.24*
             ((self.a_pl)*self.eta)**4.13)
         return 39.16*(a/b)
@@ -331,5 +324,5 @@ class CollSwarm:
         #print("Dct = {0:.3e}".format(Dct))
         Mt = self.computeMtot(t)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
-        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, Ma=Mt)
+        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
         self.Dc = Dct
