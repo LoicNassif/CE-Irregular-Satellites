@@ -234,8 +234,8 @@ class CollSwarm:
             b = 4*sig*(T**4)*((self.a_pl)**2)
             return a/b
 
-    def stellarTemp(Ms):
-        Ms = Ms/1.989e30
+    def stellarTemp(self):
+        Ms = self.M_s/1.989e30
         if Ms >= 16:
             return 3e4
         elif 2.1 <= Ms < 16:
@@ -253,14 +253,14 @@ class CollSwarm:
 
     def computeFs(self, lamb, g, Q, planet=False, swarm=False):
         if planet:
-            T = stellarTemp(self.M_s)
+            T = self.stellarTemp()
             Bmu = self.computeBmu(lamb, T)
             Fstar = self.computeFstar(Bmu, T, planet, swarm)
             a = Fstar*self.R_pl**2*g*Q
             b = (self.d_pl)**2
             return a/b
         if swarm:
-            T = stellarTemp(self.M_s)
+            T = self.stellarTemp()
             Bmu = self.computeBmu(lamb, T)
             Fstar = self.computeFstar(Bmu, T, planet, swarm)
             a = Fstar*self.computeAtot()*g*Q
