@@ -220,7 +220,10 @@ class CollSwarm:
             T = 278.3*(self.L_s/3.828e26)**(1./4.)/(6.68459e-12*self.a_pl)**0.5
             Bmu = self.computeBmu(lamb, T)
             A = self.computeAtot()
-            Fth = (0.00021/lamb)*(Bmu*A)/(self.d_pl**2)
+            if lamb >= 0.00021:
+                Fth = (0.00021/lamb)*(Bmu*A)/(self.d_pl**2)
+            else:
+                Fth = Bmu*A/self.d_pl**2
             return Fth
 
     def computeFstar(self, Bmu, T):
