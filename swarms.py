@@ -6,7 +6,7 @@ EVERY INPUT MUST BE IN SI UNITS
 
 IN DEVELOPMENT"""
 
-from numpy import pi, inf, exp
+from numpy import pi, inf, exp, zeros
 import scipy.integrate as integrate
 
 class SizeDistribution:
@@ -132,9 +132,13 @@ class SizeDistribution:
         upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
                                             - self.Dt**(3 - 3*self.qg))
 
-        print("kg_val = ", self.kg_val)
-        print("lower = ", lower)
-        print("upper = ", upper)
+        from random import randint
+        num = randint(0, 100)
+        if num == 5:
+            print("kg_val = ", self.kg_val)
+            print("lower = ", lower)
+            print("upper = ", upper)
+            print("qg = ", self.qg)
         return (lower + upper)
 
     def n(self, D):
@@ -185,9 +189,9 @@ class CollSwarm:
         """Compute the distribution's surface area."""
         return self.swarm.Atot(dlow, dhigh)
 
-    def computeNtot(self, dlow=None, dmid=None, dhigh=None):
+    def computeNtot(self, dlow=None, dhigh=None):
         """Return the distribution's number of particles."""
-        return self.swarm.Ntot(dlow, dmid, dhigh)
+        return self.swarm.Ntot(dlow, dhigh)
 
     def computen(self, D):
         """TBA"""
@@ -220,10 +224,12 @@ class CollSwarm:
             T = 278.3*(self.L_s/3.828e26)**(1./4.)/(6.68459e-12*self.a_pl)**0.5
             Bmu = self.computeBmu(lamb, T)
             A = self.computeAtot()
-            if lamb >= 0.00021:
-                Fth = (0.00021/lamb)*(Bmu*A)/(self.d_pl**2)
-            else:
-                Fth = Bmu*A/self.d_pl**2
+            Fth = zeros(len(lamb))
+            for i in range(len(lamb)):
+                if lamb[i] >= 0.00021:
+                    Fth[i] = (0.00021/lamb[i])*(Bmu[i]*A)/(self.d_pl**2)
+                else:
+                    Fth[i] = Bmu[i]*A/self.d_pl**2
             return Fth
 
     def computeFstar(self, Bmu, T):
