@@ -135,11 +135,15 @@ class SizeDistribution:
         from random import randint
         num = randint(0, 100)
         if num == 5:
+            print("ks_val = ", self.ks_val)
             print("kg_val = ", self.kg_val)
             print("lower = ", lower)
             print("upper = ", upper)
             print("qg = ", self.qg)
-        return (lower + upper)
+        if dlow > self.Dt:
+            return upper
+        else:
+            return (lower + upper)
 
     def n(self, D):
         """TBA"""
