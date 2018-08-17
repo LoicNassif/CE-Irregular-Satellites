@@ -123,14 +123,19 @@ class SizeDistribution:
         """Number of objects between input specification"""
         if dlow is None:
             dlow = self.Dmin
+        elif dlow > self.Dt:
+            dmid = dlow
+        elif dlow < self.Dt:
+            dmid = self.Dt
         if dhigh is None:
-            dhigh = self.Dc
+            dhigh = self.Dmax
 
         lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
                                             - dlow**(3 - 3*self.qs))
 
+
         upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
-                                            - self.Dt**(3 - 3*self.qg))
+                                            - dmid**(3 - 3*self.qg))
 
         from random import randint
         num = randint(0, 100)
@@ -140,7 +145,9 @@ class SizeDistribution:
             print("lower = ", lower)
             print("upper = ", upper)
             print("qg = ", self.qg)
-        if dlow > self.Dt:
+        if dlow > self.Dmax:
+            return 0
+        elif dlow > self.Dt:
             return upper
         else:
             return (lower + upper)
