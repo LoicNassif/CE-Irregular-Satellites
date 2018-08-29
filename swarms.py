@@ -123,9 +123,10 @@ class SizeDistribution:
         """Number of objects between input specification"""
         if dlow is None:
             dlow = self.Dmin
+            dmid= self.Dt
         elif dlow > self.Dt:
             dmid = dlow
-        elif dlow < self.Dt:
+        else:
             dmid = self.Dt
         if dhigh is None:
             dhigh = self.Dmax
@@ -343,6 +344,15 @@ class CollSwarm:
         Dct = self.computeDc(t)
         #print("Dct = {0:.3e}".format(Dct))
         Mt = self.computeMtot(t)
+        #print("Mt = {0:.3e}".format(Mt/5.972e24))
+        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
+        self.Dc = Dct
+
+    def updateSwarm2(self, t):
+        """Description TBD"""
+        Dct = self.computeDc(t)
+        #print("Dct = {0:.3e}".format(Dct))
+        Mt = self.swarm.Mtot(dlow=None, dhigh=self.Dmax)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
         self.Dc = Dct
