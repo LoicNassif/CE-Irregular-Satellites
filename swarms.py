@@ -66,6 +66,15 @@ class SizeDistribution:
         """description TBD"""
         self.kg_val = self.Dt**(3*self.qg - 3*self.qs)*self.ks_val
 
+    def compute_kg_from_Mtot(self, Mt):
+        """description TBD"""
+        self.Nkg = (Mt*(6/(pi*self.rho))*(6 - 3*self.qg)
+                    * self.Dc**(3*self.qg - 6))
+
+    def compute_ks_from_kg(self):
+        """description TBD"""
+        self.Nks = self.Dt**(3*self.qs - 3*self.qg)*self.Nkg
+
     def Mtot(self, dlow=None, dhigh=None):
         """The total mass of the swarm"""
         if dlow is None:
@@ -79,6 +88,8 @@ class SizeDistribution:
         upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
                                             - self.Dt**(6 - 3*self.qg))
 
+        print("lower = {0:.5e}".format(self.rho*pi*lower/6))
+        print("upper = {0:.5e}".format(self.rho*pi*upper/6))
         return self.rho*pi*(lower + upper)/6
 
     def DMtot(self, Rcc0, t, tnleft, A, M_init):
@@ -131,21 +142,21 @@ class SizeDistribution:
         if dhigh is None:
             dhigh = self.Dmax
 
-        lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
+        lower = (self.Nks/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
                                             - dlow**(3 - 3*self.qs))
 
 
-        upper = (self.kg_val/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
+        upper = (self.Nkg/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
                                             - dmid**(3 - 3*self.qg))
 
         from random import randint
         num = randint(0, 100)
-        if num == 5:
-            print("ks_val = ", self.ks_val)
-            print("kg_val = ", self.kg_val)
-            print("lower = ", lower)
-            print("upper = ", upper)
-            print("qg = ", self.qg)
+        #if num == 5:
+            # print("ks_val = ", self.ks_val)
+            # print("kg_val = ", self.kg_val)
+            # print("lower = ", lower)
+            # print("upper = ", upper)
+            # print("qg = ", self.qg)
         if dlow > self.Dmax:
             return 0
         elif dlow > self.Dt:
