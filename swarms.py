@@ -31,10 +31,12 @@ class SizeDistribution:
     Dmax: float; rho: float; qs: float; sigma0: float
     kg_val: float; ks_val: float; qg: float
 
-    def __init__(self, Dmin, Dmax, Dc=None, M0=None, sigma0=None, Dt=100, rho=1500, qs=1.9, qg=1.7):
+    def __init__(self, Dmin, Dmax, Dc=None, M0=None, sigma0=None, Dt=100, rho=1500, qs=1.9, qg=1.7, Nstr=6):
         self.Dmin = Dmin; self.Dt = Dt; self.Dc = Dmax
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
+        self.Nkg = None; self.Nks = None;
+        self.Nstr = Nstr;
         if Dc is not None:
             self.Dc = Dc
         if M0 is not None:
@@ -68,24 +70,24 @@ class SizeDistribution:
 
     def compute_kg_from_Mtot(self, Mt):
         """description TBD"""
-        self.Nkg = (Mt*(6/(pi*self.rho))*(6 - 3*self.qg)
-                    * self.Dc**(3*self.qg - 6))
+        return (Mt*(6/(pi*self.rho))*(6 - 3*self.qg)
+                    * self.Dmax**(3*self.qg - 6))
 
     def compute_ks_from_kg(self):
         """description TBD"""
-        self.Nks = self.Dt**(3*self.qs - 3*self.qg)*self.Nkg
+        return self.Dt**(3*self.qs - 3*self.qg)*self.Nkg
 
-    def Mtot(self, dlow=None, dhigh=None):
+    def Mtot(self, dlow=None, dhigh=None, Nkg, Nks):
         """The total mass of the swarm"""
         if dlow is None:
             dlow = self.Dmin
         if dhigh is None:
             dhigh = self.Dc
 
-        lower = (self.ks_val/(6 - 3*self.qs))*(self.Dt**(6 - 3*self.qs)
+        lower = (self.Nks/(6 - 3*self.qs))*(self.Dt**(6 - 3*self.qs)
                                             - dlow**(6 - 3*self.qs))
 
-        upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
+        upper = (self.Nkg/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
                                             - self.Dt**(6 - 3*self.qg))
 
         print("lower = {0:.5e}".format(self.rho*pi*lower/6))
@@ -145,9 +147,19 @@ class SizeDistribution:
         lower = (self.Nks/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
                                             - dlow**(3 - 3*self.qs))
 
+        if dhigh > self.Dc:
+            # compute K_str
+            numerator = self.Nstr * (3*self.qg - 3)
+            denominator = (2**(3*self.qg - 3) - 1) * (1e3*self.Dc)**(3 - 3*self.qg)
+            K_str = numerator / denominator
+            str_upper = K_str * (log(self.Dmax) - log(dhigh))
+            upper = (self.Nkg/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
+                                                - dmid**(3 - 3*self.qg))
 
-        upper = (self.Nkg/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
-                                            - dmid**(3 - 3*self.qg))
+        else:
+            upper = (self.Nkg/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
+                                                - dmid**(3 - 3*self.qg))
+            str_upper = 0
 
         from random import randint
         num = randint(0, 100)
@@ -160,9 +172,9 @@ class SizeDistribution:
         if dlow > self.Dmax:
             return 0
         elif dlow > self.Dt:
-            return upper
+            return (upper + str_upper)
         else:
-            return (lower + upper)
+            return (lower + upper + str_upper)
 
     def n(self, D):
         """TBA"""
