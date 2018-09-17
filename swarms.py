@@ -6,7 +6,7 @@ EVERY INPUT MUST BE IN SI UNITS
 
 IN DEVELOPMENT"""
 
-from numpy import pi, inf, exp, zeros
+from numpy import pi, inf, exp, zeros, log2
 import scipy.integrate as integrate
 
 class SizeDistribution:
@@ -77,21 +77,21 @@ class SizeDistribution:
         """description TBD"""
         return self.Dt**(3*self.qs - 3*self.qg)*self.Nkg
 
-    def Mtot(self, dlow=None, dhigh=None, Nkg, Nks):
+    def Mtot(self, dlow=None, dhigh=None):#, Nkg, Nks):
         """The total mass of the swarm"""
         if dlow is None:
             dlow = self.Dmin
         if dhigh is None:
             dhigh = self.Dc
 
-        lower = (self.Nks/(6 - 3*self.qs))*(self.Dt**(6 - 3*self.qs)
+        lower = (self.ks_val/(6 - 3*self.qs))*(self.Dt**(6 - 3*self.qs)
                                             - dlow**(6 - 3*self.qs))
 
-        upper = (self.Nkg/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
+        upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
                                             - self.Dt**(6 - 3*self.qg))
 
-        print("lower = {0:.5e}".format(self.rho*pi*lower/6))
-        print("upper = {0:.5e}".format(self.rho*pi*upper/6))
+        # print("lower = {0:.5e}".format(self.rho*pi*lower/6))
+        # print("upper = {0:.5e}".format(self.rho*pi*upper/6))
         return self.rho*pi*(lower + upper)/6
 
     def DMtot(self, Rcc0, t, tnleft, A, M_init):
@@ -118,8 +118,8 @@ class SizeDistribution:
         upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
                                             - self.Dt**(5 - 3*self.qg))
 
-        #print("lower = {0:.5e}".format((pi/4)*lower))
-        #print("upper = {0:.5e}".format((pi/4)*upper))
+        # print("lower = {0:.5e}".format((pi/4)*lower))
+        # print("upper = {0:.5e}".format((pi/4)*upper))
         return (pi/4)*(lower + upper)
 
     def Atot_mod(self):
@@ -144,31 +144,45 @@ class SizeDistribution:
         if dhigh is None:
             dhigh = self.Dmax
 
-        lower = (self.Nks/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
+        lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
                                             - dlow**(3 - 3*self.qs))
 
-        if dhigh > self.Dc:
-            # compute K_str
-            numerator = self.Nstr * (3*self.qg - 3)
-            denominator = (2**(3*self.qg - 3) - 1) * (1e3*self.Dc)**(3 - 3*self.qg)
-            K_str = numerator / denominator
-            str_upper = K_str * (log(self.Dmax) - log(dhigh))
-            upper = (self.Nkg/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
-                                                - dmid**(3 - 3*self.qg))
+        upper = 0
+        str_upper = 0
+        numerator = self.Nstr * (3*self.qg - 3)
+        denominator = (2**(3*self.qg - 3) - 1) * (self.Dc)**(3 - 3*self.qg)
+        K_str = numerator / denominator
+        str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
+        upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
+                                            - dmid**(3 - 3*self.qg))
 
-        else:
-            upper = (self.Nkg/(3 - 3*self.qg))*(dhigh**(3 - 3*self.qg)
-                                                - dmid**(3 - 3*self.qg))
-            str_upper = 0
+        if dlow > self.Dc:
+            # compute K_str
+            print("\t dlow > Dc")
+            str_upper = K_str * (log2(self.Dmax) - log2(dlow))
+            upper = 0
+            lower = 0
+
+        elif self.Dt < dlow <= self.Dc:
+            print("\t dlow < Dc")
+            upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
+                                                - dlow**(3 - 3*self.qg))
+            str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
+            lower = 0
 
         from random import randint
         num = randint(0, 100)
-        #if num == 5:
-            # print("ks_val = ", self.ks_val)
-            # print("kg_val = ", self.kg_val)
-            # print("lower = ", lower)
-            # print("upper = ", upper)
-            # print("qg = ", self.qg)
+        if num == 5:
+            print("ks_val = ", self.ks_val)
+            print("kg_val = ", self.kg_val)
+            print("lower = ", lower)
+            print("upper = ", upper)
+            print("str upper = ", str_upper)
+            print("qg = ", self.qg)
+            print("k_str = ", K_str)
+            print("Dmax = ", self.Dmax)
+            print("Dc = ", self.Dc)
+            print("dlow = ", dlow)
         if dlow > self.Dmax:
             return 0
         elif dlow > self.Dt:
