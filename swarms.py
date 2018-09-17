@@ -149,9 +149,9 @@ class SizeDistribution:
 
         upper = 0
         str_upper = 0
-        numerator = self.Nstr * (3*self.qg - 3)
-        denominator = (2**(3*self.qg - 3) - 1) * (self.Dc)**(3 - 3*self.qg)
-        K_str = numerator / denominator
+        #numerator = self.Nstr * (3*self.qg - 3)
+        #denominator = (2**(3*self.qg - 3) - 1) * (self.Dc)**(3 - 3*self.qg)
+        K_str = self.kg_val * self.Dc**(3 - 3*self.qg) #numerator / denominator
         str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
         upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
                                             - dmid**(3 - 3*self.qg))
