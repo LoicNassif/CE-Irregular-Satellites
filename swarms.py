@@ -94,8 +94,12 @@ class SizeDistribution:
         # print("upper = {0:.5e}".format(self.rho*pi*upper/6))
         return self.rho*pi*(lower + upper)/6
 
-    def DMtot(self, Rcc0, t, tnleft, A, M_init):
+    def DMtot(self, Rcc0, t, tnleft, Xc_val, M_init):
         """The total mass of the swarm at some given time t."""
+        numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
+        denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
+        A = numerator/denominator * (1 - Xc_val**(6 - 3*self.qg))
+
         if t <= tnleft:
             return (M_init)/(1 + Rcc0*t)
         else:
@@ -370,15 +374,18 @@ class CollSwarm:
 
     def computeMtot(self, t):
         """Compute the total mass at a given time t."""
-        y0 = self.swarm.DMtot(self.Rcc0, t, inf, 0, self.M_init)
-        A = y0/self.Dmax**3
-        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, A, self.M_init)
-
+        #y0 = self.swarm.DMtot(self.Rcc0, self.tnleft, inf, 0, self.M_init)
+        Xc_val = self.computeXc()
+        #self.swarm.Dc = self.Dc
+        #Mt = 3.9e-6 * self.rho * self.swarm.sigma0 * self.Dc**0.9 * self.Dmin**0.7
+        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, Xc_val, self.M_init)
         return Mt
 
     def updateSwarm(self, t):
         """Description TBD"""
         Dct = self.computeDc(t)
+        self.swarm.Dc = Dct
+        self.Dc = Dct
         #print("Dct = {0:.3e}".format(Dct))
         Mt = self.computeMtot(t)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
@@ -388,8 +395,10 @@ class CollSwarm:
     def updateSwarm2(self, t):
         """Description TBD"""
         Dct = self.computeDc(t)
+        self.Dc = Dct
         #print("Dct = {0:.3e}".format(Dct))
-        Mt = self.swarm.Mtot(dlow=None, dhigh=self.Dmax)
+        #Mt = self.swarm.Mtot(dlow=None, dhigh=self.Dmax)
+        Mt = self.computeMtot(t)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
         self.Dc = Dct
