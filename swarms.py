@@ -94,13 +94,13 @@ class SizeDistribution:
         # print("upper = {0:.5e}".format(self.rho*pi*upper/6))
         return self.rho*pi*(lower + upper)/6
 
-    def DMtot(self, Rcc0, t, tnleft, Xc_val, M_init):
+    def DMtot(self, Rcc0, t, tnleft, Xc_val, M_init, correction):
         """The total mass of the swarm at some given time t."""
         numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
         denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
         A = numerator/denominator * (1 - Xc_val**(6 - 3*self.qg))
 
-        if t <= tnleft:
+        if (t <= tnleft) or (not correction):
             return (M_init)/(1 + Rcc0*t)
         else:
             return A*self.Dc**3
@@ -222,8 +222,9 @@ class CollSwarm:
     Rcc0: float; tnleft: float; M_init: float; correction: bool
 
     def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
-                rho=1500, fQ=5, f_vrel=4/pi, correction=True):
+                rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2):
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
+        self.alpha = alpha
         self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
@@ -369,7 +370,7 @@ class CollSwarm:
         if (t < self.tnleft) or (not self.correction):
             return self.Dmax
         else:
-            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(1/1.2)
+            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(self.alpha)
             return self.Dmax/a
 
     def computeMtot(self, t):
@@ -378,7 +379,7 @@ class CollSwarm:
         Xc_val = self.computeXc()
         #self.swarm.Dc = self.Dc
         #Mt = 3.9e-6 * self.rho * self.swarm.sigma0 * self.Dc**0.9 * self.Dmin**0.7
-        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, Xc_val, self.M_init)
+        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, Xc_val, self.M_init, self.correction)
         return Mt
 
     def updateSwarm(self, t):
