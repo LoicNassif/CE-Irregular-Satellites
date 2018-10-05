@@ -96,13 +96,15 @@ class SizeDistribution:
 
     def DMtot(self, Rcc0, t, tnleft, Xc_val, M_init, correction):
         """The total mass of the swarm at some given time t."""
-        numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
-        denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
-        A = numerator/denominator * (1 - Xc_val**(6 - 3*self.qg))
+        #numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
+        #denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
+        #A = numerator/denominator * (1 - Xc_val**(6 - 3*self.qg))
+        A = M_init / (self.Dmax**3 * (1 + Rcc0*tnleft))
 
         if (t <= tnleft) or (not correction):
             return (M_init)/(1 + Rcc0*t)
         else:
+            #return (M_init)/(1 + Rcc0*t)
             return A*self.Dc**3
 
     def Atot_mod2(self):
@@ -356,7 +358,7 @@ class CollSwarm:
     def computeXc(self):
         """Computes the constant Xc for which objects of size XcDc can destroy
         objects of size Dc."""
-        Qd = self.computeQd(self.Dmax)
+        Qd = self.computeQd(self.Dc)
         vrel = self.computeVrel()
         return (2*Qd/(vrel**2))**(1/3)
 
