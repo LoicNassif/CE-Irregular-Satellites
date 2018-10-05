@@ -327,7 +327,7 @@ class CollSwarm:
 
     def computeRCC(self):
         """Compute the rate of collision."""
-        Qd = self.computeQd(self.Dmax)
+        Qd = self.computeQd(self.Dc)
         a = (self.swarm.M0/5.972e24)*(self.M_s/1.989e30)**1.38*self.f_vrel**2.27
         b = (Qd**0.63*self.rho*(self.Dmax/1000)*(self.M_pl/5.972e24)**0.24*
             ((self.a_pl/1.496e11)*self.eta)**4.13)
