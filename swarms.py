@@ -393,7 +393,7 @@ class CollSwarm:
         Mt = self.computeMtot(t)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
-        self.Dc = Dct
+        
 
     def updateSwarm2(self, t):
         """Description TBD"""
