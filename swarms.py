@@ -96,10 +96,10 @@ class SizeDistribution:
 
     def DMtot(self, Rcc0, t, tnleft, Xc_val, M_init, correction):
         """The total mass of the swarm at some given time t."""
-        #numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
-        #denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
-        #A = numerator/denominator * (1 - Xc_val**(6 - 3*self.qg))
-        A = M_init / (self.Dmax**3 * (1 + Rcc0*tnleft))
+        numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
+        denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
+        A = numerator/denominator
+        #A = M_init / (self.Dmax**3 * (1 + Rcc0*tnleft))
 
         if (t <= tnleft) or (not correction):
             return (M_init)/(1 + Rcc0*t)
@@ -362,6 +362,13 @@ class CollSwarm:
         vrel = self.computeVrel()
         return (2*Qd/(vrel**2))**(1/3)
 
+    def computeXcmax(self):
+        """Computes the constant Xc for which objects of size XcDc can destroy
+        objects of size Dc."""
+        Qd = self.computeQd(self.Dmax)
+        vrel = self.computeVrel()
+        return (2*Qd/(vrel**2))**(1/3)
+
     def computetnleft(self):
         """Compute the time at which the first object is stranded."""
         nval = self.swarm.Ntot_mod()
@@ -378,10 +385,11 @@ class CollSwarm:
     def computeMtot(self, t):
         """Compute the total mass at a given time t."""
         #y0 = self.swarm.DMtot(self.Rcc0, self.tnleft, inf, 0, self.M_init)
-        Xc_val = self.computeXc()
+        #Xc_val = self.computeXc()
+        Xc_max = self.computeXcmax()
         #self.swarm.Dc = self.Dc
         #Mt = 3.9e-6 * self.rho * self.swarm.sigma0 * self.Dc**0.9 * self.Dmin**0.7
-        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, Xc_val, self.M_init, self.correction)
+        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, Xc_max, self.M_init, self.correction)
         return Mt
 
     def updateSwarm(self, t):
@@ -393,7 +401,7 @@ class CollSwarm:
         Mt = self.computeMtot(t)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
-        
+
 
     def updateSwarm2(self, t):
         """Description TBD"""
