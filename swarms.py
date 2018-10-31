@@ -36,6 +36,7 @@ class SizeDistribution:
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
         self.Nkg = None; self.Nks = None;
+        self.A1 = []; self.A2 = [];
         self.Nstr = Nstr;
         if Dc is not None:
             self.Dc = Dc
@@ -100,7 +101,6 @@ class SizeDistribution:
         denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
         A = numerator/denominator
         #A = M_init / (self.Dmax**3 * (1 + Rcc0*tnleft))
-
         if (t <= tnleft) or (not correction):
             return (M_init)/(1 + Rcc0*t)
         else:
