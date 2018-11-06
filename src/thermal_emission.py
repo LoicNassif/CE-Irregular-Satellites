@@ -33,9 +33,6 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
     # Check if time is the dependable variable
     elif not isinstance(t, float):
         max_i = len(t)
-    # Check if the wavelength is the dependable variable
-    elif not isinstance(lamb, float):
-        max_i = len(lamb)
     # Check if the mass is the dependable variable
     elif Mtot0 is not None:
         max_i = len(Mtot0)
@@ -71,20 +68,6 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
             F_th = Fth(bnu, swarm.Dc, swarm.Dmin, M0, swarm.Rcc0, t[i], d_pl)
             fth_list.append(F_th)
 
-    elif not isinstance(lamb, float):
-        for i in range(max_i):
-            swarm = swarms.CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl,
-                                    a_pl, R_pl, eta, Nstr, d_pl,
-                                    rho=RHO, fQ=5, f_vrel=4/pi,
-                                    correction=True, alpha=1.2)
-
-            swarm.updateSwarm(t)
-
-            T = swarm.computeT(L_s, a_pl)
-            bnu = swarm.computeBmu(lamb[i], T)
-            F_th = Fth(bnu, swarm.Dc, swarm.Dmin, M0, swarm.Rcc0, t, d_pl)
-            fth_list.append(F_th)
-
     elif (Mtot0 is not None):
         for i in range(max_i):
             swarm = swarms.CollSwarm(Mtot0[i], Dt, Dmax, L_s, M_s, M_pl,
@@ -112,13 +95,6 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
         plots(t, fth_list,
             "thermal emission with respect to time",
             "time [yr]", "F_th [W sr^-1 m^-3]")
-        plt.loglog()
-        plt.show()
-
-    if not isinstance(lamb, float):
-        plots(lamb, fth_list,
-            "thermal emission with respect to wavelength",
-            "wavelength [m]", "F_th [W sr^-1 m^-3]")
         plt.loglog()
         plt.show()
 
