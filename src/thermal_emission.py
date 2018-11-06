@@ -52,7 +52,7 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
             T = swarm.computeT(L_s, a_plv[i])
             bnu = swarm.computeBmu(lamb, T)
             F_th = Fth(bnu, swarm.Dc, swarm.Dmin, M0, swarm.Rcc0, t, d_pl)
-            fth_list.append(F_th)
+            fth_list.append(F_th*1e-26)
 
     elif not isinstance(t, float):
         for i in range(max_i):
@@ -66,7 +66,7 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
             T = swarm.computeT(L_s, a_pl)
             bnu = swarm.computeBmu(lamb, T)
             F_th = Fth(bnu, swarm.Dc, swarm.Dmin, M0, swarm.Rcc0, t[i], d_pl)
-            fth_list.append(F_th)
+            fth_list.append(F_th*1e-26)
 
     elif (Mtot0 is not None):
         for i in range(max_i):
@@ -80,7 +80,7 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
             T = swarm.computeT(L_s, a_pl)
             bnu = swarm.computeBmu(lamb, T)
             F_th = Fth(bnu, swarm.Dc, swarm.Dmin, Mtot0[i], swarm.Rcc0, t, d_pl)
-            fth_list.append(F_th)
+            fth_list.append(F_th*1e-26)
 
 
 
@@ -88,20 +88,20 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
     if a_plv is not None:
         plots(a_plv/1.496e11, fth_list,
             "thermal emission with respect to semi-major axis",
-            "a_pl [au]", "F_th [W sr^-1 m^-3]")
+            "a_pl [au]", "F_th [Jy]")
         plt.show()
 
     if not isinstance(t, float):
         plots(t, fth_list,
             "thermal emission with respect to time",
-            "time [yr]", "F_th [W sr^-1 m^-3]")
+            "time [yr]", "F_th [Jy]")
         plt.loglog()
         plt.show()
 
     if Mtot0 is not None:
         plots(Mtot0, fth_list,
             "thermal emission with respect to swarm mass",
-            "mass [kg]", "F_th [W sr^-1 m^-3]")
+            "mass [kg]", "F_th [Jy]")
         plt.loglog()
         plt.show()
 

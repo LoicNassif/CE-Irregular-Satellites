@@ -44,7 +44,7 @@ def main(swarm_argv, lamb, t):
         T = s.computeT(L_s, a_plv)
         bnu = s.computeBmu(lamb, T)
         F_th = Fth(s, t[i], a_plv)
-        fth.append(F_th)
+        fth.append(F_th*1e-26)
         semi_major.append(a_plv)
 
 
@@ -57,6 +57,9 @@ def main(swarm_argv, lamb, t):
 
     plt.figure(2)
     plt.plot(t, fth)
+    plt.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
+    plt.xlabel("time [yr]")
+    plt.ylabel("F_th [Jy]")
     #plt.loglog()
     plt.show()
 
