@@ -16,8 +16,8 @@ def Fth(s, t, a_pl):
     part1Rcc = 1.3e7 * (s.M_init/5.972e24) * (s.M_s/1.989e30)**1.38 * s.f_vrel**2.27
     part2Rcc = Qd**0.63 * s.rho * (s.Dmax/1000) * (s.M_pl/5.972e24)**0.24 * s.eta**4.13 * a_pl**4.13
     Rcc = part1Rcc / part2Rcc
-    part1 = (1/3.9e-6) * (1/(s.rho * s.d_pl)) * s.Dc**-0.9 * s.Dmin**-0.7
-    part2 = s.M_init / (1 + Rcc * t)
+    part1 = (1/3.9e-6) * (1/(s.rho * (s.d_pl/1.496e11)**2)) * (s.Dc/1000)**-0.9 * (s.Dmin*1e6)**-0.7
+    part2 = (s.M_init/5.972e24) / (1 + Rcc * t)
     return part1 * part2
 
 #main
@@ -47,6 +47,8 @@ def main(swarm_argv, lamb, t):
         fth.append(F_th*1e-26)
         semi_major.append(a_plv)
 
+        #print("time: "+str(t[i])+"\t semi-major: "+str(a_plv)+"\t thermal: "+str(F_th))
+
 
     plt.figure(1)
     plt.plot(t, semi_major)
@@ -63,13 +65,13 @@ def main(swarm_argv, lamb, t):
     #plt.loglog()
     plt.show()
 
-if __name__ == '__main__':
-    M0 = 10 * 7.34767309e22; Dt = 100.; Dmax = 250000.; L_s = 20 * 3.828e26;
-    M_s = 1.86 * 1.989e30; M_pl = 1.89587112e27; a_pl = 7.48e12
-    R_pl = 6.9911e7; eta = 0.4; Nstr = 6.; d_pl = 3.086e17
-
-    t = linspace(1e6, 10e10, 500)
-    lamb = 1e-4
-
-    argv = [M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl]
-    main(argv, lamb, t)
+# if __name__ == '__main__':
+#     M0 = 10 * 7.34767309e22; Dt = 100.; Dmax = 250000.; L_s = 20 * 3.828e26;
+#     M_s = 1.86 * 1.989e30; M_pl = 1.89587112e27; a_pl = 7.48e12
+#     R_pl = 6.9911e7; eta = 0.4; Nstr = 6.; d_pl = 3.086e17
+#
+#     t = linspace(1e6, 10e10, 500)
+#     lamb = 1e-4
+#
+#     argv = [M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl]
+#     main(argv, lamb, t)

@@ -7,8 +7,9 @@ from numpy import pi, linspace, logspace
 RHO = 1500
 
 def Fth(B_nu, Dc, Dmin, Mtot0, Rcc0, t, d_pl):
-    part1 = (1/3.9e-6) * (1/(RHO * d_pl)) * Dc**-0.9 * Dmin**-0.7
-    part2 = Mtot0 / (1 + Rcc0 * t)
+    part1 = ((1/3.9e-6) * (1/(RHO * (d_pl/1.496e11)**2)) *
+            (Dc/1000)**-0.9 * (Dmin*1e6)**-0.7)
+    part2 = (Mtot0/5.972e24) / (1 + Rcc0 * t)
     return part1 * part2
 
 def plots(x, y, title, xlabel, ylabel):
