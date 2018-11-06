@@ -6,10 +6,19 @@ import matplotlib.pyplot as plt
 RHO=1500
 
 def a_pl_comp(s, t):
-    Qd = s.computeQd(s.Dmax)
-    part1 = 1.3e7 * s.M_init * s.M_s**1.38 * s.f_vrel**2.27
-    part2 = Qd**0.63 * RHO * s.Dc * s.M_pl**0.24 * s.eta**4.13
+    Qd = s.computeQd(s.Dc)
+    part1 = 1.3e7 * (s.M_init/5.972e24) * (s.M_s/1.989e30)**1.38 * s.f_vrel**2.27
+    part2 = Qd**0.63 * s.rho * (s.Dmax/1000) * (s.M_pl/5.972e24)**0.24 * s.eta**4.13
     return (t  * part1 * part2)**(1./4.13)
+
+def Fth(s, t, a_pl):
+    Qd = s.computeQd(s.Dc)
+    part1Rcc = 1.3e7 * (s.M_init/5.972e24) * (s.M_s/1.989e30)**1.38 * s.f_vrel**2.27
+    part2Rcc = Qd**0.63 * s.rho * (s.Dmax/1000) * (s.M_pl/5.972e24)**0.24 * s.eta**4.13 * a_pl**4.13
+    Rcc = part1Rcc / part2Rcc
+    part1 = (1/3.9e-6) * (1/(s.rho * s.d_pl)) * s.Dc**-0.9 * s.Dmin**-0.7
+    part2 = s.M_init / (1 + Rcc * t)
+    return part1 * part2
 
 #main
 def main(swarm_argv, lamb, t):
@@ -21,6 +30,7 @@ def main(swarm_argv, lamb, t):
     d_pl = swarm_argv[10]
 
     semi_major = []
+    fth = []
 
     s = swarms.CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl,
                             a_pl, R_pl, eta, Nstr, d_pl,
@@ -29,12 +39,25 @@ def main(swarm_argv, lamb, t):
 
     for i in range(len(t)):
         s.updateSwarm(t[i])
-        semi_major.append(a_pl_comp(s, t[i]))
 
+        a_plv = a_pl_comp(s, t[i])
+        T = s.computeT(L_s, a_plv)
+        bnu = s.computeBmu(lamb, T)
+        F_th = Fth(s, t[i], a_plv)
+        fth.append(F_th)
+        semi_major.append(a_plv)
+
+
+    plt.figure(1)
     plt.plot(t, semi_major)
     plt.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
     plt.xlabel("time [yr]")
-    plt.ylabel("semi-major axis [m^2]")
+    plt.ylabel("semi-major axis [au]")
+    plt.show()
+
+    plt.figure(2)
+    plt.plot(t, fth)
+    #plt.loglog()
     plt.show()
 
 if __name__ == '__main__':
