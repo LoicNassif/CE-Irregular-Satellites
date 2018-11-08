@@ -1,6 +1,6 @@
 # Loic
 import swarms
-from numpy import pi, sqrt, linspace
+from numpy import pi, sqrt, linspace, array
 import matplotlib.pyplot as plt
 
 RHO=1500
@@ -9,7 +9,7 @@ def a_pl_comp(s, t):
     Qd = s.computeQd(s.Dc)
     part1 = 1.3e7 * (s.M_init/5.972e24) * (s.M_s/1.989e30)**1.38 * s.f_vrel**2.27
     part2 = Qd**0.63 * s.rho * (s.Dmax/1000) * (s.M_pl/5.972e24)**0.24 * s.eta**4.13
-    return (t  * part1 * part2)**(1./4.13)
+    return (t  * part1 / part2)**(1./4.13)
 
 def Fth(s, t, a_pl):
     Qd = s.computeQd(s.Dc)
@@ -41,10 +41,14 @@ def main(swarm_argv, lamb, t):
         s.updateSwarm(t[i])
 
         a_plv = a_pl_comp(s, t[i])
-        T = s.computeT(L_s, a_plv)
-        bnu = s.computeBmu(lamb, T)
-        F_th = Fth(s, t[i], a_plv)
-        fth.append(F_th*1e-26)
+        #T = s.computeT(L_s, a_plv)
+        #bnu = s.computeBmu(lamb, T)
+        s2 = swarms.CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl,
+                                a_plv, R_pl, eta, Nstr, d_pl,
+                                rho=RHO, fQ=5, f_vrel=4/pi,
+                                correction=True, alpha=1.2)
+        F_th = s2.computeFth(array([lamb]), swarm=True)
+        fth.append(F_th/1e-26)
         semi_major.append(a_plv)
 
         #print("time: "+str(t[i])+"\t semi-major: "+str(a_plv)+"\t thermal: "+str(F_th))
@@ -55,6 +59,7 @@ def main(swarm_argv, lamb, t):
     plt.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
     plt.xlabel("time [yr]")
     plt.ylabel("semi-major axis [au]")
+    plt.loglog()
     plt.show()
 
     plt.figure(2)
@@ -62,7 +67,7 @@ def main(swarm_argv, lamb, t):
     plt.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
     plt.xlabel("time [yr]")
     plt.ylabel("F_th [Jy]")
-    #plt.loglog()
+    plt.loglog()
     plt.show()
 
 # if __name__ == '__main__':

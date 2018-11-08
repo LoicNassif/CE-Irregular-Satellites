@@ -1,7 +1,7 @@
 """Computing and plotting thermal emission"""
 import swarms
 import matplotlib.pyplot as plt
-from numpy import pi, linspace, logspace
+from numpy import pi, linspace, logspace, array
 
 # Define global vars
 RHO = 1500
@@ -50,10 +50,10 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
 
             swarm.updateSwarm(t)
 
-            T = swarm.computeT(L_s, a_plv[i])
-            bnu = swarm.computeBmu(lamb, T)
-            F_th = Fth(bnu, swarm.Dc, swarm.Dmin, M0, swarm.Rcc0, t, d_pl)
-            fth_list.append(F_th*1e-26)
+            #T = swarm.computeT(L_s, a_plv[i])
+            #bnu = swarm.computeBmu(lamb, T)
+            F_th = swarm.computeFth(array([lamb]), swarm=True)
+            fth_list.append(F_th[0]/1e-26)
 
     elif not isinstance(t, float):
         for i in range(max_i):
@@ -64,10 +64,11 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
 
             swarm.updateSwarm(t[i])
 
-            T = swarm.computeT(L_s, a_pl)
-            bnu = swarm.computeBmu(lamb, T)
-            F_th = Fth(bnu, swarm.Dc, swarm.Dmin, M0, swarm.Rcc0, t[i], d_pl)
-            fth_list.append(F_th*1e-26)
+            #T = swarm.computeT(L_s, a_pl)
+            #bnu = swarm.computeBmu(lamb, T)
+            #F_th = Fth(bnu, swarm.Dc, swarm.Dmin, M0, swarm.Rcc0, t[i], d_pl)
+            F_th = swarm.computeFth(array([lamb]), swarm=True)
+            fth_list.append(F_th[0]/1e-26)
 
     elif (Mtot0 is not None):
         for i in range(max_i):
@@ -78,10 +79,11 @@ def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
 
             swarm.updateSwarm(t)
 
-            T = swarm.computeT(L_s, a_pl)
-            bnu = swarm.computeBmu(lamb, T)
-            F_th = Fth(bnu, swarm.Dc, swarm.Dmin, Mtot0[i], swarm.Rcc0, t, d_pl)
-            fth_list.append(F_th*1e-26)
+            #T = swarm.computeT(L_s, a_pl)
+            #bnu = swarm.computeBmu(lamb, T)
+            #F_th = Fth(bnu, swarm.Dc, swarm.Dmin, Mtot0[i], swarm.Rcc0, t, d_pl)
+            F_th = swarm.computeFth(array([lamb]), swarm=True)
+            fth_list.append(F_th[0]/1e-26)
 
 
 
