@@ -11,13 +11,23 @@ def Fstar(Ls, Bnu, Ts, dpl):
     part2 = 4 * sig * Ts ** 4 * dpl ** 2
     return part1 / part2
 
-def main(swarm_argv, lamb, t, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
+def main(swarm_argv, lamb, t, type_star, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
     M0 = swarm_argv[0]; Dt = swarm_argv[1]
     Dmax = swarm_argv[2]; L_s = swarm_argv[3]
     M_s = swarm_argv[4]; M_pl = swarm_argv[5]
     a_pl = swarm_argv[6]; R_pl = swarm_argv[7]
     eta = swarm_argv[8]; Nstr = swarm_argv[9]
     d_pl = swarm_argv[10]
+
+    if type_star == "A":
+        M_s = 2.1 * 1.989e30
+        L_s = 20 * 3.828e26
+    elif type_star == "G":
+        M_s = 1 * 1.989e30
+        L_s = 1 * 3.828e26
+    elif type_star == "M":
+        M_s = 0.21 * 1.989e30
+        L_s = 0.0079 * 3.828e26
 
     s = swarms.CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
                         d_pl, correction=True, alpha=1./1.2)
