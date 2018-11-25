@@ -272,7 +272,8 @@ class CollSwarm:
 
     def computeFth(self, lamb, planet=False, swarm=False):
         if planet:
-            T = self.computeT(self.L_s, self.a_pl)
+            #T = self.computeT(self.L_s, self.a_pl)
+            T = self.stellarTemp()
             Bmu = self.computeBmu(lamb, T)
             Fth = Bmu*pi*(self.R_pl/(self.d_pl))**2
             return Fth

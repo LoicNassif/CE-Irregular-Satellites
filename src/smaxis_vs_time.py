@@ -71,6 +71,7 @@ def main(swarm_argv, lamb, t, M0flag=False):
                                     correction=True, alpha=1.2)
             F_th = s2.computeFth(array([lamb]), swarm=True)
             fth.append(F_th/1e-26)
+            print(M0v)
             M0v_list.append(M0v)
 
     if not M0flag:
@@ -97,13 +98,13 @@ def main(swarm_argv, lamb, t, M0flag=False):
     plt.loglog()
     plt.show()
 
-# if __name__ == '__main__':
-#     M0 = 10 * 7.34767309e22; Dt = 100.; Dmax = 250000.; L_s = 20 * 3.828e26;
-#     M_s = 1.86 * 1.989e30; M_pl = 1.89587112e27; a_pl = 7.48e12
-#     R_pl = 6.9911e7; eta = 0.4; Nstr = 6.; d_pl = 3.086e17
-#
-#     t = linspace(1e6, 10e10, 500)
-#     lamb = 1e-4
-#
-#     argv = [M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl]
-#     main(argv, lamb, t, True)
+if __name__ == '__main__':
+    M0 = 10 * 7.34767309e22; Dt = 100.; Dmax = 250000.; L_s = 20 * 3.828e26;
+    M_s = 1.86 * 1.989e30; M_pl = 1.89587112e27; a_pl = 7.48e12
+    R_pl = 6.9911e7; eta = 0.4; Nstr = 6.; d_pl = 3.086e17
+
+    t = linspace(1e6, 10e10, 500)
+    lamb = 1e-4
+
+    argv = [M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl]
+    main(argv, lamb, t, True)
