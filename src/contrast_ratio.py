@@ -11,7 +11,7 @@ def Fstar(Ls, Bnu, Ts, dpl):
     part2 = 4 * sig * Ts ** 4 * dpl ** 2
     return part1 / part2
 
-def main(swarm_argv, lamb, t, type_star, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
+def main(swarm_argv, lamb, t, type_star, planet=False, Ms=None, Mtot0=None, d_plv=None, a_plv=None):
     M0 = swarm_argv[0]; Dt = swarm_argv[1]
     Dmax = swarm_argv[2]; L_s = swarm_argv[3]
     M_s = swarm_argv[4]; M_pl = swarm_argv[5]
@@ -31,7 +31,7 @@ def main(swarm_argv, lamb, t, type_star, Ms=None, Mtot0=None, d_plv=None, a_plv=
 
     s = swarms.CollSwarm(M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr,
                         d_pl, correction=True, alpha=1./1.2)
-
+    s.updateSwarm(t)
     T_star = s.stellarTemp()
     B_nu = s.computeBmu(lamb, T_star)
     F_star = Fstar(L_s, B_nu, T_star, d_pl)/1e-26
@@ -54,13 +54,21 @@ def main(swarm_argv, lamb, t, type_star, Ms=None, Mtot0=None, d_plv=None, a_plv=
 
             #T = swarm.computeT(L_s, a_plv[i])
             #bnu = swarm.computeBmu(lamb, T)
-            F_th = s2.computeFth(array([lamb]), swarm=True)
+            if planet:
+                F_th = s2.computeFth(array([lamb]), planet=True)
+            else:
+                F_th = s2.computeFth(array([lamb]), swarm=True)
+
             fth_list.append(F_th[0]/1e-26)
 
     contrast_ratio = array(fth_list) / F_star
-    s.updateSwarm(t)
-    Fth_swarm = s.computeFth(waverange, swarm=True)/1e-26
-    Fs_swarm = s.computeFs(waverange, 0.32, 0.08, swarm=True)/1e-26
+    #s.updateSwarm(t)
+    if planet:
+        Fth_swarm = s.computeFth(waverange, planet=True)/1e-26
+        Fs_swarm = s.computeFs(waverange, 0.32, 0.08, planet=True)/1e-26
+    else:
+        Fth_swarm = s.computeFth(waverange, swarm=True)/1e-26
+        Fs_swarm = s.computeFs(waverange, 0.32, 0.08, swarm=True)/1e-26
 
     # print("Fth")
     # print(Fth_swarm)
@@ -81,7 +89,7 @@ def main(swarm_argv, lamb, t, type_star, Ms=None, Mtot0=None, d_plv=None, a_plv=
     plt.loglog(waverange, F_star_list, 'g')
     plt.xlabel("wavelength [m]")
     plt.ylabel("F [Jy]")
-    plt.ylim([10e-11, 10e-3])
+    plt.ylim([10e-11, 10e5])
     plt.show()
 
     plt.figure(2)
@@ -98,14 +106,15 @@ def main(swarm_argv, lamb, t, type_star, Ms=None, Mtot0=None, d_plv=None, a_plv=
     plt.ylabel("F_swarm / F_star")
     plt.show()
 
-# if __name__ == '__main__':
-#     M0 = 10 * 7.34767309e22; Dt = 100.; Dmax = 250000.; L_s = 10 * 3.828e26;
-#     M_s = 1.86 * 1.989e30; M_pl = 1 * 1.89587112e27; a_pl = 50 * 1.496e11
-#     R_pl = 6.9911e7; eta = 0.4; Nstr = 6.; d_pl = 10 * 3.086e16
-#     argv = [M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl]
-#
-#     t = 1e7
-#     lamb = 1e-4
-#     apl = linspace(1 * 1.496e11, 50 * 1.496e11, 500)
-#
-#     main(argv, lamb, t, a_plv=apl)
+
+if __name__ == '__main__':
+    M0 = 10 * 7.34767309e22; Dt = 100.; Dmax = 250000.; L_s = 10 * 3.828e26;
+    M_s = 1.86 * 1.989e30; M_pl = 1 * 1.89587112e27; a_pl = 50 * 1.496e11
+    R_pl = 6.9911e7; eta = 0.4; Nstr = 6.; d_pl = 10 * 3.086e16
+    argv = [M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl]
+
+    t = 1e7
+    lamb = 1e-4
+    apl = linspace(1 * 1.496e11, 50 * 1.496e11, 500)
+
+    main(argv, lamb, t, "A", a_plv=apl)
