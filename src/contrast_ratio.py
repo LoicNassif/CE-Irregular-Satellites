@@ -70,35 +70,26 @@ def main(swarm_argv, lamb, t, type_star, planet=False, Ms=None, Mtot0=None, d_pl
         Fth_swarm = s.computeFth(waverange, swarm=True)/1e-26
         Fs_swarm = s.computeFs(waverange, 0.32, 0.08, swarm=True)/1e-26
 
-    # print("Fth")
-    # print(Fth_swarm)
-    # print("Fs")
-    # print(Fs_swarm)
 
-    #contrast_ratio_s = []
-    # for i in range(len(Fs_swarm)):
-    #     if 10e-11 <= Fs_swarm[i] <= 10e-3:
-    #         contrast_ratio_s.append(Fs_swarm[i] / F_star[i])
-    #         lamb.append(waverange[i])
     contrast_ratio_th = Fth_swarm / F_star_list
     contrast_ratio_s = Fs_swarm / F_star_list
 
-    plt.figure(1)
-    plt.loglog(waverange, Fs_swarm, 'r')
-    plt.loglog(waverange, Fth_swarm, 'b')
-    plt.loglog(waverange, F_star_list, 'g')
-    plt.xlabel("wavelength [m]")
-    plt.ylabel("F [Jy]")
-    plt.ylim([10e-11, 10e5])
-    plt.show()
-
-    plt.figure(2)
-    #plt.loglog(waverange, contrast_ratio_s, 'r')
-    plt.loglog(waverange, contrast_ratio_th, 'b')
-    plt.xlabel("wavelength [m]")
-    plt.ylabel("F_swarm / F_star")
-    plt.ylim([10e-5, 10])
-    plt.show()
+    # plt.figure(1)
+    # plt.loglog(waverange, Fs_swarm, 'r')
+    # plt.loglog(waverange, Fth_swarm, 'b')
+    # plt.loglog(waverange, F_star_list, 'g')
+    # plt.xlabel("wavelength [m]")
+    # plt.ylabel("F [Jy]")
+    # plt.ylim([10e-11, 10e5])
+    # plt.show()
+    #
+    # plt.figure(2)
+    # #plt.loglog(waverange, contrast_ratio_s, 'r')
+    # plt.loglog(waverange, contrast_ratio_th, 'b')
+    # plt.xlabel("wavelength [m]")
+    # plt.ylabel("F_swarm / F_star")
+    # plt.ylim([10e-5, 10])
+    # plt.show()
 
     plt.figure(3)
     plt.loglog(a_plv/1.496e11, contrast_ratio)
