@@ -18,7 +18,7 @@ def convert_units(age_col, rad_col, logL_col):
 
     # convert to watts
     for i in range(1, len(logL_col)):
-        lumin.append(exp(float(logL_col[i]))*3.828e26)
+        lumin.append((10**(float(logL_col[i])))*3.828e26)
 
     return ages, radii, lumin
 
