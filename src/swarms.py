@@ -300,7 +300,7 @@ class CollSwarm:
         if Ms >= 16:
             return 3e4
         elif 2.1 <= Ms < 16:
-            return 2e4
+            return 8620
         elif 1.4 <= Ms < 2.1:
             return 9e3
         elif 1.04 <= Ms < 1.4:
