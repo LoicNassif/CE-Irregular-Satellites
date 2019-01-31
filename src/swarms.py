@@ -312,10 +312,11 @@ class CollSwarm:
         elif 0.08 <= Ms < 0.45:
             return 3e3
 
-    def computeFs(self, lamb, g, Q, planet=False, swarm=False):
-        T = self.stellarTemp()
-        Bmu = self.computeBmu(lamb, T)
-        Fstar = self.computeFstar(Bmu, T)
+    def computeFs(self, lamb, g, Q, planet=False, swarm=False, Fstar=None):
+        if Fstar is None:
+            T = self.stellarTemp()
+            Bmu = self.computeBmu(lamb, T)
+            Fstar = self.computeFstar(Bmu, T)
 
         if planet:
             a = Fstar*self.R_pl**2*g*Q
