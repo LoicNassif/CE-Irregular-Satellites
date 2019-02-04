@@ -239,7 +239,7 @@ class CollSwarm:
         """Compute the minimum sized object in the distribution."""
         a1 = (self.eta**0.5)*(self.L_s/3.828e26)
         a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
-        return 2e5*(a1/a2)
+        return max(2e5*(a1/a2), 1.65)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None):
         """Compute the distribution's surface area."""
