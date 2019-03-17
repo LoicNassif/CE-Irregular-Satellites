@@ -222,11 +222,12 @@ class CollSwarm:
     a_pl: float; R_pl: float; swarm: SizeDistribution
     Dmin: float; eta: float; fQ: float; f_vrel: float; d_pl: float
     Rcc0: float; tnleft: float; M_init: float; correction: bool
+    Dmin_min: float
 
     def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
-                rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2):
+                rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65):
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
-        self.alpha = alpha
+        self.alpha = alpha; self.Dmin_min = Dmin_min
         self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
@@ -235,15 +236,21 @@ class CollSwarm:
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
 
-    def computeDmin(self):
+    def computeDmin(self, Dmmin=None):
         """Compute the minimum sized object in the distribution."""
         a1 = (self.eta**0.5)*(self.L_s/3.828e26)
         a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
-        return max(2e5*(a1/a2), 1.65)
+        if Dmmin is None:
+            return max(2e5*(a1/a2), 1.65) 
+        return max(2e5*(a1/a2), Dmmin)
 
-    def computeAtot(self, dlow=None, dmid=None, dhigh=None):
+    def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
         """Compute the distribution's surface area."""
-        return self.swarm.Atot(dlow, dhigh)
+        if cap:
+            R_H = self.a_pl * (self.M_pl / (3 * self.M_s))**(1./3.)
+            return min(self.swarm.Atot(dlow, dhigh), pi * R_H**2)
+        else:
+            return self.swarm.Atot(dlow, dhigh)
 
     def computeNtot(self, dlow=None, dhigh=None):
         """Return the distribution's number of particles."""
