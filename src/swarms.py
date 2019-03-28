@@ -230,7 +230,7 @@ class CollSwarm:
         self.alpha = alpha; self.Dmin_min = Dmin_min
         self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
         self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
-        self.Dmin = self.computeDmin()/1e6; self.fQ = fQ; self.f_vrel = f_vrel
+        self.Dmin = self.computeDmin(self.Dmin_min)/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0)
         self.M_init = M0; self.d_pl = d_pl
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
@@ -240,8 +240,6 @@ class CollSwarm:
         """Compute the minimum sized object in the distribution."""
         a1 = (self.eta**0.5)*(self.L_s/3.828e26)
         a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
-        if Dmmin is None:
-            return max(2e5*(a1/a2), 1.65) 
         return max(2e5*(a1/a2), Dmmin)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
