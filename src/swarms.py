@@ -236,11 +236,13 @@ class CollSwarm:
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
 
-    def computeDmin(self, Dmmin=None):
+    def computeDmin(self, Dmin_min=None):
         """Compute the minimum sized object in the distribution."""
+        if Dmin_min is None:
+            Dmin_min = self.Dmin_min
         a1 = (self.eta**0.5)*(self.L_s/3.828e26)
         a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
-        return max(2e5*(a1/a2), Dmmin)
+        return max(2e5*(a1/a2), Dmin_min)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
         """Compute the distribution's surface area."""
