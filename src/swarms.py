@@ -382,26 +382,14 @@ class CollSwarm:
         """Compute the time at which the first object is stranded."""
         nval = self.swarm.Ntot_mod()
         return nval/(self.Rcc0*self.Nstr)
-    
-    def computeTCOL(self):
-        return (
-                (0.04 * (self.fQ / 5.)**(-0.63) * (self.eta / 0.3)**(4.13) * (self.rho / 1000.)**(1.63) 
-                * (self.Dc / (1000*100.))**(1.79) * (self.M_pl / 1.89813e27)**(0.24) * (self.M_s / 1.989e30)*(-1.38)
-                * (self.a_pl / (6.68459e-12*30))**(4.13)) / self.Mtot
-        )
 
     def computeDc(self, t):
         """Compute the new Dc after stranding time."""
         if (t < self.tnleft) or (not self.correction):
             return self.Dmax
         else:
-            tcol = self.computeTCOL() 
-            if (-(tcol + tcol*0.01) <= t <= tcol + tcol*0.01):
-                a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(self.alpha)
-                return self.Dmax/a
-            else:
-                return self.Dc
-
+            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(self.alpha)
+            return self.Dmax/a
 
     def computeMtot(self, t):
         """Compute the total mass at a given time t."""
