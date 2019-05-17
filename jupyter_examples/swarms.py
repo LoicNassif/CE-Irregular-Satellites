@@ -207,25 +207,6 @@ class SizeDistribution:
         """TBA"""
         return self.ks_val*D**(2 - 3*self.qs) + self.kg_val*D**(2 - 3*self.qg)
     
-def computeFth(self, lamb, planet=False, swarm=False):
-    if planet:
-        #T = self.computeT(self.L_s, self.a_pl)
-        T = self.stellarTemp()
-        Bmu = self.computeBmu(lamb, T)
-        Fth = Bmu*pi*(self.R_pl/(self.d_pl))**2
-        return Fth
-    if swarm:
-        T = 278.3*(self.L_s/3.828e26)**(1./4.)/(6.68459e-12*self.a_pl)**0.5
-        Bmu = self.computeBmu(lamb, T)
-        A = self.computeAtot()
-        Fth = zeros(len(lamb))
-        for i in range(len(lamb)):
-            if lamb[i] >= 0.00021:
-                Fth[i] = (0.00021/lamb[i])*(Bmu[i]*A)/(self.d_pl**2)
-            else:
-                Fth[i] = Bmu[i]*A/self.d_pl**2
-        return Fth
-
 def computeBnu(lamb, T):
     a = 2*h*(c/lamb)**3/c**2
     b = 1/(exp(h*(c/lamb)/(k_B*T)) - 1)
@@ -277,11 +258,10 @@ def computeCRscat(g, Q, A, dscat):
     return g*Q*A/(pi*dscat**2)
 
 class Star():
-    def __init__(self, L, M, T, R, d):
+    def __init__(self, L, M, T, d):
         self.L = L # Luminosity
         self.M = M # Mass
         self.T = T # Temperature
-        self.R = R # Radius
         self.d = d # distance from solar system
     
     def F(self, lamb, dist):
@@ -289,12 +269,12 @@ class Star():
         return computeFthermal(lamb, self.Across, self.T, dist)
 
     @property
-    def A(self):
-        return 4.*pi*self.R**2
+    def A(self):        # 4piR**2
+        return self.L/sig/self.T**4
     
     @property
     def Across(self):
-        return pi*self.R**2
+        return self.A/4.# piR**2
     
 class Planet():
     def __init__(self, star, M, a, Q, R=None, Z='010', age=1.e10):
@@ -367,7 +347,7 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65):
+    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65, age=1.e10):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
@@ -376,6 +356,7 @@ class CollSwarm:
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0); self.M_init = M0
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
+        self.updateSwarm(age)
 
     def computeDmin(self, Dmin_min=None):
         """Compute the minimum sized object in the distribution."""
