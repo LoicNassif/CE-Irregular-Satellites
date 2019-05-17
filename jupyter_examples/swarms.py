@@ -231,18 +231,23 @@ def computeBnu(lamb, T):
     b = 1/(exp(h*(c/lamb)/(k_B*T)) - 1)
     return a*b
    
-def computeFthermal(lamb, A, T, d):
+def computeFthermal(lamb, Across, T, d):
     Bnu = computeBnu(lamb, T)
-    return A*Bnu/(4. * d**2)
+    return Across*Bnu/d**2
 
 def computeCRthermal(lamb, Tp, Tstar, Ap, Astar):
     Bnup = computeBnu(lamb, Tp)
     Bnustar = computeBnu(lamb, Tstar)
     return Ap/Astar*Bnup/Bnustar
 
-def lum_to_temp(L, R):
-    part1 = L / (4 * pi * sig * R**2)
-    return (part1)**(1./4.)
+def lum_to_temp(L, A):
+    ''' Get temperature from luminosity and surface area
+
+    === Arguments ===
+    L: Bolometric luminosity (W)
+    A: Surface area (m^2)
+    '''
+    return (L/A/sig)**(1./4.)
 
 def computeFscat(star, lamb, g, Q, A, dscat):
     ''' Calculate light scattered from scattering surface with area A to the observer at a distance star.d away from star
@@ -281,14 +286,15 @@ class Star():
     
     def F(self, lamb, dist):
         # Flux from star at wavelength lamb at distance dist
-        Bnu = computeBnu(lamb, self.T)
-        a = self.L*Bnu
-        b = 4*sig*(self.T**4)*(dist**2)
-        return a/b
+        return computeFthermal(lamb, self.Across, self.T, dist)
 
     @property
     def A(self):
         return 4.*pi*self.R**2
+    
+    @property
+    def Across(self):
+        return pi*self.R**2
     
 class Planet():
     def __init__(self, star, M, a, Q, R=None, Z='010', age=1.e10):
@@ -300,10 +306,6 @@ class Planet():
         self.age = age
         self.R = R if R is not None else self.RBaraffe(age) 
 
-    @property
-    def Teq(self):
-        # Calculate equilibrium temperature of the planet from incident light
-        return (self.star.L/(16*pi*sig*self.a**2))**(1./4.)
     
     @property
     def Lintrinsic(self):
@@ -314,7 +316,7 @@ class Planet():
     
     @property
     def Lincident(self):
-        return self.star.L/(4*self.a**2)*self.R**2
+        return self.star.L/(4*self.a**2)*self.R**2*(1.-self.Q)
 
     @property
     def Ltot(self):
@@ -322,22 +324,29 @@ class Planet():
     
     @property
     def T(self):
-        return (self.Ltot/(4.*pi*self.R**2*sig))**(1./4.)
+        return lum_to_temp(self.Ltot, self.A)
 
     @property
     def A(self):
         return 4.*pi*self.R**2
     
+    @property
+    def Across(self):
+        return pi*self.R**2
+    
     def Fscat(self, lamb, g):
         # Calculate light scattered from planet to the observer
         return computeFscat(self.star, lamb, g, self.Q, pi*self.R**2, self.a)
 
+    def CRscat(self, g):
+        return computeCRscat(g, self.Q, pi*self.R**2, self.a)
+        
     def RBaraffe(self, t):
         model = BaraffeModelFixedTime(self.Z, t)
         return model.R(self.M)
     
     def Fthermal(self, lamb):
-        return computeFthermal(lamb, self.A, self.T, self.star.d)
+        return computeFthermal(lamb, self.Across, self.T, self.star.d)
     
     def CRthermal(self, lamb):
         return computeCRthermal(lamb, self.T, self.star.T, self.A, self.star.A)
@@ -358,13 +367,13 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, M0, Dt, Dmax, eta, Nstr, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65):
+    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65):
+        self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
-        self.Dc = Dmax; self.eta = eta; self.rho = rho
+        self.Dc = Dmax; self.eta = eta; self.rho = rho; self.Q = Q
         self.Dmin = self.computeDmin(self.Dmin_min)/1e6; self.fQ = fQ; self.f_vrel = f_vrel
-        self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0)
-        self.M_init = M0; self.d_pl = d_pl
+        self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0); self.M_init = M0
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
 
@@ -372,14 +381,14 @@ class CollSwarm:
         """Compute the minimum sized object in the distribution."""
         if Dmin_min is None:
             Dmin_min = self.Dmin_min
-        a1 = (self.eta**0.5)*(self.L_s/3.828e26)
-        a2 = self.rho*((self.M_pl/5.972e24)**(1/3))*((self.M_s/1.989e30)**(2/3))
+        a1 = (self.eta**0.5)*(self.star.L/3.828e26)
+        a2 = self.rho*((self.planet.M/5.972e24)**(1/3))*((self.star.M/1.989e30)**(2/3))
         return max(2e5*(a1/a2), Dmin_min)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
         """Compute the distribution's surface area."""
         if cap:
-            R_H = self.a_pl * (self.M_pl / (3 * self.M_s))**(1./3.)
+            R_H = self.planet.a * (self.planet.M / (3 * self.star.M))**(1./3.)
             return min(self.swarm.Atot(dlow, dhigh), pi * R_H**2)
         else:
             return self.swarm.Atot(dlow, dhigh)
@@ -397,35 +406,32 @@ class CollSwarm:
         """Compute the planetesimal strength of an object."""
         return 0.1*self.rho*(D/1000)**1.26/self.fQ
 
-    def computeFstar(self, Bmu, T):
-        sig = 5.670367e-8 #Stefan-Boltzmann constant
-        a = self.L_s*Bmu
-        b = 4*sig*(T**4)*((self.a_pl)**2)
-        return a/b
+    @property
+    def T(self):
+        # Calculate equilibrium temperature of the planet from incident light
+        return (self.star.L*(1.-self.Q)/(16*pi*sig*self.planet.a**2))**(1./4.)
+    
+    def Fscat(self, lamb, g, planet=False, swarm=False, Fstar=None):
+        return computeFscat(self.star, lamb, g, self.Q, self.computeAtot(), self.planet.a)
 
-    def computeFs(self, lamb, g, Q, planet=False, swarm=False, Fstar=None):
-        if Fstar is None:
-            T = self.stellarTemp()
-            Bmu = self.computeBmu(lamb, T)
-            Fstar = self.computeFstar(Bmu, T)
-
-        if planet:
-            a = Fstar*self.R_pl**2*g*Q
-            b = (self.d_pl)**2
-            return a/b
-        if swarm:
-            a = Fstar*self.computeAtot()*g*Q
-            b = pi*(self.d_pl)**2
-            return a/b
+    def CRscat(self, g):
+        return computeCRscat(g, self.Q, self.computeAtot(), self.planet.a)
+        
+    def Fthermal(self, lamb):
+        return computeFthermal(lamb, self.computeAtot(), self.T, self.star.d)
+    
+    def CRthermal(self, lamb):
+        return computeCRthermal(lamb, self.T, self.star.T, self.computeAtot(), self.star.A)
 
     def computeRCC(self):
         """Compute the rate of collision."""
         Qd = self.computeQd(self.Dc)
-        a = (self.swarm.M0/5.972e24)*(self.M_s/1.989e30)**1.38*self.f_vrel**2.27
-        b = (Qd**0.63*self.rho*(self.Dmax/1000)*(self.M_pl/5.972e24)**0.24*
-            ((self.a_pl/1.496e11)*self.eta)**4.13)
+        a = (self.swarm.M0/5.972e24)*(self.star.M/1.989e30)**1.38*self.f_vrel**2.27
+        b = (Qd**0.63*self.rho*(self.Dmax/1000)*(self.planet.M/5.972e24)**0.24*
+            ((self.planet.a/1.496e11)*self.eta)**4.13)
         return 1.3e7*(a/b)
 
+    '''
     def computeRCC5(self):
         """Compute the rate of collision."""
         Qd = self.computeQd(self.Dmax)
@@ -442,11 +448,11 @@ class CollSwarm:
         a = (6 - 3*self.swarm.qg)/(3*self.swarm.qs - 5)
         b = (vrel*0.1*(Xc**-1.9)*self.M_init)/(self.rho*(self.Dc/1000)*V)
         return 8.4e-5*a*b
-
+    '''
     def computeVrel(self):
         """Compute the mean relative velocity of collisions."""
-        a = (4/pi)*516*(self.M_pl/5.972e24)**(1/3)*(self.M_s/1.989e30)**(1/6)
-        return a/((self.eta*(self.a_pl/1.496e11))**0.5)
+        a = (4/pi)*516*(self.planet.M/5.972e24)**(1/3)*(self.star.M/1.989e30)**(1/6)
+        return a/((self.eta*(self.planet.a/1.496e11))**0.5)
 
     def computeXc(self):
         """Computes the constant Xc for which objects of size XcDc can destroy
