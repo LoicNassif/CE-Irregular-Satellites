@@ -8,6 +8,13 @@ IN DEVELOPMENT"""
 
 from numpy import pi, inf, exp, zeros, log2
 import scipy.integrate as integrate
+from pread import BaraffeModelFixedTime, BaraffeModelFixedMass
+
+sig = 5.670367e-8 #Stefan-Boltzmann constant
+c = 299792458 #speed of light
+k_B = 1.38064852e-23 #Boltzmann's constant
+h = 6.626070040e-34 #Plank's constant
+Mearth = 5.97e24 # kg
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -199,7 +206,142 @@ class SizeDistribution:
     def n(self, D):
         """TBA"""
         return self.ks_val*D**(2 - 3*self.qs) + self.kg_val*D**(2 - 3*self.qg)
+    
+def computeFth(self, lamb, planet=False, swarm=False):
+    if planet:
+        #T = self.computeT(self.L_s, self.a_pl)
+        T = self.stellarTemp()
+        Bmu = self.computeBmu(lamb, T)
+        Fth = Bmu*pi*(self.R_pl/(self.d_pl))**2
+        return Fth
+    if swarm:
+        T = 278.3*(self.L_s/3.828e26)**(1./4.)/(6.68459e-12*self.a_pl)**0.5
+        Bmu = self.computeBmu(lamb, T)
+        A = self.computeAtot()
+        Fth = zeros(len(lamb))
+        for i in range(len(lamb)):
+            if lamb[i] >= 0.00021:
+                Fth[i] = (0.00021/lamb[i])*(Bmu[i]*A)/(self.d_pl**2)
+            else:
+                Fth[i] = Bmu[i]*A/self.d_pl**2
+        return Fth
 
+def computeBnu(lamb, T):
+    a = 2*h*(c/lamb)**3/c**2
+    b = 1/(exp(h*(c/lamb)/(k_B*T)) - 1)
+    return a*b
+   
+def computeFthermal(lamb, A, T, d):
+    Bnu = computeBnu(lamb, T)
+    return A*Bnu/(4. * d**2)
+
+def computeCRthermal(lamb, Tp, Tstar, Ap, Astar):
+    Bnup = computeBnu(lamb, Tp)
+    Bnustar = computeBnu(lamb, Tstar)
+    return Ap/Astar*Bnup/Bnustar
+
+def lum_to_temp(L, R):
+    part1 = L / (4 * pi * sig * R**2)
+    return (part1)**(1./4.)
+
+def computeFscat(star, lamb, g, Q, A, dscat):
+    ''' Calculate light scattered from scattering surface with area A to the observer at a distance star.d away from star
+
+    === Attributes ===
+    star: star whose light is being scattered
+    lamb: wavelength of observation
+    g: scattering phase function
+    Q: Albedo at wavelength lamb
+    A: Total scattering area
+    dscat: Distance of scattering surface from the central star
+    '''
+
+    Fincident = star.F(lamb, dscat) # flux incident from star on scattering area
+    return Fincident*g*Q*A/(pi*star.d**2)
+
+def computeCRscat(g, Q, A, dscat):
+    ''' Calculate contrast ratio in scattered light between object with area A and central star
+
+    === Attributes ===
+    g: scattering phase function
+    Q: Albedo at wavelength lamb
+    A: Total scattering area
+    dscat: Distance of scattering surface from the central star
+    '''
+
+    return g*Q*A/(pi*dscat**2)
+
+class Star():
+    def __init__(self, L, M, T, R, d):
+        self.L = L # Luminosity
+        self.M = M # Mass
+        self.T = T # Temperature
+        self.R = R # Radius
+        self.d = d # distance from solar system
+    
+    def F(self, lamb, dist):
+        # Flux from star at wavelength lamb at distance dist
+        Bnu = computeBnu(lamb, self.T)
+        a = self.L*Bnu
+        b = 4*sig*(self.T**4)*(dist**2)
+        return a/b
+
+    @property
+    def A(self):
+        return 4.*pi*self.R**2
+    
+class Planet():
+    def __init__(self, star, M, a, Q, R=None, Z='010', age=1.e10):
+        self.star = star
+        self.M = M
+        self.a = a
+        self.Q = Q
+        self.Z = Z
+        self.age = age
+        self.R = R if R is not None else self.RBaraffe(age) 
+
+    @property
+    def Teq(self):
+        # Calculate equilibrium temperature of the planet from incident light
+        return (self.star.L/(16*pi*sig*self.a**2))**(1./4.)
+    
+    @property
+    def Lintrinsic(self):
+        if self.M < 20*Mearth: # minimum value in Barafee. Bellow this Lintrinsic is negligible
+            return 0.
+        model = BaraffeModelFixedTime(self.Z, self.age)
+        return model.L(self.M)
+    
+    @property
+    def Lincident(self):
+        return self.star.L/(4*self.a**2)*self.R**2
+
+    @property
+    def Ltot(self):
+        return self.Lintrinsic + self.Lincident
+    
+    @property
+    def T(self):
+        return (self.Ltot/(4.*pi*self.R**2*sig))**(1./4.)
+
+    @property
+    def A(self):
+        return 4.*pi*self.R**2
+    
+    def Fscat(self, lamb, g):
+        # Calculate light scattered from planet to the observer
+        return computeFscat(self.star, lamb, g, self.Q, pi*self.R**2, self.a)
+
+    def RBaraffe(self, t):
+        model = BaraffeModelFixedTime(self.Z, t)
+        return model.R(self.M)
+    
+    def Fthermal(self, lamb):
+        return computeFthermal(lamb, self.A, self.T, self.star.d)
+    
+    def CRthermal(self, lamb):
+        return computeCRthermal(lamb, self.T, self.star.T, self.A, self.star.A)
+        
 class CollSwarm:
     """Represents the irregular satellite swarm of a given planet. You can
     compute the following information using the following methods:
@@ -209,27 +351,17 @@ class CollSwarm:
     M0: initial mass of the swarm [kg]
     Dt: transition particle size of the swarm [m]
     Dmax: maximum particle size of the swarm [m]
-    L_s: luminosity of the primary [W] (3.828e26 W = 1 solar lum)
-    M_s: mass of the primary [kg] (1.989e30 kg = 1 solar mass)
-    M_pl: mass of the planet [kg] (5.972e24 kg = 1 earth mass)
-    a_pl: semi-major axis of the planet [m] (1.496e11 m = 1 AU)
-    R_pl: radius of the planet [m]
     eta: constant fraction of the Hill radius at which irregulars orbit
     rho: mass density of the swarm [kg/m^3]
     """
-    Dt: float; Dmax: float; Nstr: float
-    L_s: float; M_s: float; M_pl: float; Dc: float
-    a_pl: float; R_pl: float; swarm: SizeDistribution
-    Dmin: float; eta: float; fQ: float; f_vrel: float; d_pl: float
-    Rcc0: float; tnleft: float; M_init: float; correction: bool
-    Dmin_min: float
+    Dt: float; Dmax: float; Nstr: float; Dc: float; swarm: SizeDistribution
+    Dmin: float; eta: float; fQ: float; f_vrel: float; 
+    Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, M0, Dt, Dmax, L_s, M_s, M_pl, a_pl, R_pl, eta, Nstr, d_pl,
-                rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65):
+    def __init__(self, M0, Dt, Dmax, eta, Nstr, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65):
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
-        self.L_s = L_s; self.M_s = M_s; self.M_pl = M_pl; self.Dc = Dmax
-        self.a_pl = a_pl; self.R_pl = R_pl; self.eta = eta; self.rho = rho
+        self.Dc = Dmax; self.eta = eta; self.rho = rho
         self.Dmin = self.computeDmin(self.Dmin_min)/1e6; self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0)
         self.M_init = M0; self.d_pl = d_pl
@@ -265,59 +397,11 @@ class CollSwarm:
         """Compute the planetesimal strength of an object."""
         return 0.1*self.rho*(D/1000)**1.26/self.fQ
 
-    def computeT(self, L, dist):
-        sig = 5.670367e-8 #Stefan-Boltzmann constant
-        return (L/(16*pi*sig*(dist)**2))**(1./4.)
-
-    def computeBmu(self, lamb, T):
-        c = 299792458 #speed of light
-        k_B = 1.38064852e-23 #Boltzmann's constant
-        h = 6.626070040e-34 #Plank's constant
-        a = 2*h*(c/lamb)**3/c**2
-        b = 1/(exp(h*(c/lamb)/(k_B*T)) - 1)
-        return a*b
-
-    def computeFth(self, lamb, planet=False, swarm=False):
-        if planet:
-            #T = self.computeT(self.L_s, self.a_pl)
-            T = self.stellarTemp()
-            Bmu = self.computeBmu(lamb, T)
-            Fth = Bmu*pi*(self.R_pl/(self.d_pl))**2
-            return Fth
-        if swarm:
-            T = 278.3*(self.L_s/3.828e26)**(1./4.)/(6.68459e-12*self.a_pl)**0.5
-            Bmu = self.computeBmu(lamb, T)
-            A = self.computeAtot()
-            Fth = zeros(len(lamb))
-            for i in range(len(lamb)):
-                if lamb[i] >= 0.00021:
-                    Fth[i] = (0.00021/lamb[i])*(Bmu[i]*A)/(self.d_pl**2)
-                else:
-                    Fth[i] = Bmu[i]*A/self.d_pl**2
-            return Fth
-
     def computeFstar(self, Bmu, T):
         sig = 5.670367e-8 #Stefan-Boltzmann constant
         a = self.L_s*Bmu
         b = 4*sig*(T**4)*((self.a_pl)**2)
         return a/b
-
-    def stellarTemp(self):
-        Ms = self.M_s/1.989e30
-        if Ms >= 16:
-            return 3e4
-        elif 2.1 <= Ms < 16:
-            return 8620
-        elif 1.4 <= Ms < 2.1:
-            return 9e3
-        elif 1.04 <= Ms < 1.4:
-            return 7e3
-        elif 0.8 <= Ms < 1.04:
-            return 5.6e3
-        elif 0.45 <= Ms < 0.8:
-            return 4.5e3
-        elif 0.08 <= Ms < 0.45:
-            return 3e3
 
     def computeFs(self, lamb, g, Q, planet=False, swarm=False, Fstar=None):
         if Fstar is None:
