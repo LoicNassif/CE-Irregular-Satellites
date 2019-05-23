@@ -15,6 +15,8 @@ c = 299792458 #speed of light
 k_B = 1.38064852e-23 #Boltzmann's constant
 h = 6.626070040e-34 #Plank's constant
 Mearth = 5.97e24 # kg
+Msun = 1.99e30 # kg
+AU = 1.496e11 # m
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -347,7 +349,7 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65, age=1.e10):
+    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65, age=0.):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
@@ -493,3 +495,11 @@ class CollSwarm:
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
         self.Dc = Dct
+
+    def aopt(self, t):
+        # t must be in years!
+        part1 = (self.star.M/Msun)**0.33 * self.f_vrel**0.55
+        part2 = (self.planet.M/Mearth)**0.06 * self.computeQd(self.Dc)**0.15 * self.eta
+        part3 = t * self.M_init/Mearth / self.rho / (self.Dc/1000)
+        return 50. * part1 / part2 * part3**0.24 * AU
+
