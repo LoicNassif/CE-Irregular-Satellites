@@ -354,7 +354,7 @@ class CollSwarm:
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
         self.Dc = Dmax; self.eta = eta; self.rho = rho; self.Q = Q
-        self.Dmin = self.computeDmin(self.Dmin_min)/1e6; self.fQ = fQ; self.f_vrel = f_vrel
+        self.Dmin = self.computeDmin(self.Dmin_min); self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0); self.M_init = M0
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
@@ -366,7 +366,7 @@ class CollSwarm:
             Dmin_min = self.Dmin_min
         a1 = (self.eta**0.5)*(self.star.L/3.828e26)
         a2 = self.rho*((self.planet.M/5.972e24)**(1/3))*((self.star.M/1.989e30)**(2/3))
-        return max(2e5*(a1/a2), Dmin_min)
+        return max(2e5*(a1/a2)*1e6, Dmin_min*1e6)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
         """Compute the distribution's surface area."""
@@ -414,24 +414,6 @@ class CollSwarm:
             ((self.planet.a/1.496e11)*self.eta)**4.13)
         return 1.3e7*(a/b)
 
-    '''
-    def computeRCC5(self):
-        """Compute the rate of collision."""
-        Qd = self.computeQd(self.Dmax)
-        a = (self.swarm.M0)*(self.M_s)**1.38*self.f_vrel**2.27
-        b = (Qd**0.63*self.rho*(self.Dmax)*(self.M_pl)**0.24*
-            ((self.a_pl)*self.eta)**4.13)
-        return 39.16*(a/b)
-
-    def computeRCC2(self):
-        """Compute RCC using equation 5 from Kennedy instead of equation 7."""
-        vrel = self.computeVrel()
-        Xc = self.computeXc()
-        V = 4*pi*(self.eta**2)*(self.eta/2)*((self.R_pl/1.496e11)**3)*0.866
-        a = (6 - 3*self.swarm.qg)/(3*self.swarm.qs - 5)
-        b = (vrel*0.1*(Xc**-1.9)*self.M_init)/(self.rho*(self.Dc/1000)*V)
-        return 8.4e-5*a*b
-    '''
     def computeVrel(self):
         """Compute the mean relative velocity of collisions."""
         a = (4/pi)*516*(self.planet.M/5.972e24)**(1/3)*(self.star.M/1.989e30)**(1/6)
@@ -483,18 +465,6 @@ class CollSwarm:
         Mt = self.computeMtot(t)
         #print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
-
-
-    def updateSwarm2(self, t):
-        """Description TBD"""
-        Dct = self.computeDc(t)
-        self.Dc = Dct
-        #print("Dct = {0:.3e}".format(Dct))
-        #Mt = self.swarm.Mtot(dlow=None, dhigh=self.Dmax)
-        Mt = self.computeMtot(t)
-        #print("Mt = {0:.3e}".format(Mt/5.972e24))
-        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
-        self.Dc = Dct
 
     def aopt(self, t):
         # t must be in years!
