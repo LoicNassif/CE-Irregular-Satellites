@@ -10,13 +10,16 @@ from numpy import pi, inf, exp, zeros, log2
 import scipy.integrate as integrate
 from pread import BaraffeModelFixedTime, BaraffeModelFixedMass
 
-sig = 5.670367e-8 #Stefan-Boltzmann constant
-c = 299792458 #speed of light
-k_B = 1.38064852e-23 #Boltzmann's constant
-h = 6.626070040e-34 #Plank's constant
-Mearth = 5.97e24 # kg
-Msun = 1.99e30 # kg
+SIG = 5.670367e-8 #Stefan-Boltzmann constant
+C = 299792458 #speed of light
+K_B = 1.38064852e-23 #Boltzmann's constant
+H = 6.626070040e-34 #Plank's constant
+MEARTH = 5.972e24 # kg
+MSUN = 1.99e30 # kg
 AU = 1.496e11 # m
+WSUN = 3.828e26 # watts
+MICRON = 1e-6 # m
+KM = 1e3 # m
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -100,8 +103,6 @@ class SizeDistribution:
         upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
                                             - self.Dt**(6 - 3*self.qg))
 
-        # print("lower = {0:.5e}".format(self.rho*pi*lower/6))
-        # print("upper = {0:.5e}".format(self.rho*pi*upper/6))
         return self.rho*pi*(lower + upper)/6
 
     def DMtot(self, Rcc0, t, tnleft, Xc_val, M_init, correction):
@@ -109,11 +110,9 @@ class SizeDistribution:
         numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
         denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
         A = numerator/denominator
-        #A = M_init / (self.Dmax**3 * (1 + Rcc0*tnleft))
         if (t <= tnleft) or (not correction):
             return (M_init)/(1 + Rcc0*t)
         else:
-            #return (M_init)/(1 + Rcc0*t)
             return A*self.Dc**3
 
     def Atot_mod2(self):
@@ -132,9 +131,6 @@ class SizeDistribution:
 
         upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
                                             - self.Dt**(5 - 3*self.qg))
-
-        # print("lower = {0:.5e}".format((pi/4)*lower))
-        # print("upper = {0:.5e}".format((pi/4)*upper))
         return (pi/4)*(lower + upper)
 
     def Atot_mod(self):
@@ -147,7 +143,7 @@ class SizeDistribution:
         a = self.kg_val*(2**(3*self.qg - 3) - 1)*self.Dc**(3 - 3*self.qg)
         return a/(3*self.qg - 3)
 
-    def Ntot(self, dlow, dhigh):
+    def Ntot(self, dlow, dhigh, verbose=None):
         """Number of objects between input specification"""
         if dlow is None:
             dlow = self.Dmin
@@ -164,8 +160,6 @@ class SizeDistribution:
 
         upper = 0
         str_upper = 0
-        #numerator = self.Nstr * (3*self.qg - 3)
-        #denominator = (2**(3*self.qg - 3) - 1) * (self.Dc)**(3 - 3*self.qg)
         K_str = self.kg_val * self.Dc**(3 - 3*self.qg) #numerator / denominator
         str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
         upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
@@ -185,19 +179,20 @@ class SizeDistribution:
             str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
             lower = 0
 
-        from random import randint
-        num = randint(0, 100)
-        if num == 5:
-            print("ks_val = ", self.ks_val)
-            print("kg_val = ", self.kg_val)
-            print("lower = ", lower)
-            print("upper = ", upper)
-            print("str upper = ", str_upper)
-            print("qg = ", self.qg)
-            print("k_str = ", K_str)
-            print("Dmax = ", self.Dmax)
-            print("Dc = ", self.Dc)
-            print("dlow = ", dlow)
+        if (verbose is not None):
+            from random import randint
+            num = randint(0, 100)
+            if num == 5:
+                print("ks_val = ", self.ks_val)
+                print("kg_val = ", self.kg_val)
+                print("lower = ", lower)
+                print("upper = ", upper)
+                print("str upper = ", str_upper)
+                print("qg = ", self.qg)
+                print("k_str = ", K_str)
+                print("Dmax = ", self.Dmax)
+                print("Dc = ", self.Dc)
+                print("dlow = ", dlow)
         if dlow > self.Dmax:
             return 0
         elif dlow > self.Dt:
@@ -210,8 +205,8 @@ class SizeDistribution:
         return self.ks_val*D**(2 - 3*self.qs) + self.kg_val*D**(2 - 3*self.qg)
     
 def computeBnu(lamb, T):
-    a = 2*h*(c/lamb)**3/c**2
-    b = 1/(exp(h*(c/lamb)/(k_B*T)) - 1)
+    a = 2*H*(C/lamb)**3/C**2
+    b = 1/(exp(H*(C/lamb)/(K_B*T)) - 1)
     return a*b
    
 def computeFthermal(lamb, Across, T, d):
@@ -230,7 +225,7 @@ def lum_to_temp(L, A):
     L: Bolometric luminosity (W)
     A: Surface area (m^2)
     '''
-    return (L/A/sig)**(1./4.)
+    return (L/A/SIG)**(1./4.)
 
 def computeFscat(star, lamb, g, Q, A, dscat):
     ''' Calculate light scattered from scattering surface with area A to the observer at a distance star.d away from star
@@ -272,7 +267,7 @@ class Star():
 
     @property
     def A(self):        # 4piR**2
-        return self.L/sig/self.T**4
+        return self.L/SIG/self.T**4
     
     @property
     def Across(self):
@@ -291,7 +286,7 @@ class Planet():
     
     @property
     def Lintrinsic(self):
-        if self.M < 20*Mearth: # minimum value in Barafee. Bellow this Lintrinsic is negligible
+        if self.M < 20*MEARTH: # minimum value in Baraffe. Bellow this Lintrinsic is negligible
             return 0.
         model = BaraffeModelFixedTime(self.Z, self.age)
         return model.L(self.M)
@@ -364,9 +359,9 @@ class CollSwarm:
         """Compute the minimum sized object in the distribution."""
         if Dmin_min is None:
             Dmin_min = self.Dmin_min
-        a1 = (self.eta**0.5)*(self.star.L/3.828e26)
-        a2 = self.rho*((self.planet.M/5.972e24)**(1/3))*((self.star.M/1.989e30)**(2/3))
-        return max(2e5*(a1/a2)*1e6, Dmin_min*1e6)
+        a1 = (self.eta**0.5)*(self.star.L/WSUN)
+        a2 = self.rho*((self.planet.M/MEARTH)**(1/3))*((self.star.M/MSUN)**(2/3))
+        return max(2e5*(a1/a2)*MICRON, Dmin_min*MICRON)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
         """Compute the distribution's surface area."""
@@ -387,12 +382,12 @@ class CollSwarm:
 
     def computeQd(self, D):
         """Compute the planetesimal strength of an object."""
-        return 0.1*self.rho*(D/1000)**1.26/self.fQ
+        return 0.1*self.rho*(D/KM)**1.26/self.fQ
 
     @property
     def T(self):
         # Calculate equilibrium temperature of the planet from incident light
-        return (self.star.L*(1.-self.Q)/(16*pi*sig*self.planet.a**2))**(1./4.)
+        return (self.star.L*(1.-self.Q)/(16*pi*SIG*self.planet.a**2))**(1./4.)
     
     def Fscat(self, lamb, g, planet=False, swarm=False, Fstar=None):
         return computeFscat(self.star, lamb, g, self.Q, self.computeAtot(), self.planet.a)
@@ -409,15 +404,15 @@ class CollSwarm:
     def computeRCC(self):
         """Compute the rate of collision."""
         Qd = self.computeQd(self.Dc)
-        a = (self.swarm.M0/5.972e24)*(self.star.M/1.989e30)**1.38*self.f_vrel**2.27
-        b = (Qd**0.63*self.rho*(self.Dmax/1000)*(self.planet.M/5.972e24)**0.24*
-            ((self.planet.a/1.496e11)*self.eta)**4.13)
+        a = (self.swarm.M0/MEARTH)*(self.star.M/MSUN)**1.38*self.f_vrel**2.27
+        b = (Qd**0.63*self.rho*(self.Dmax/KM)*(self.planet.M/MEARTH)**0.24*
+            ((self.planet.a/AU)*self.eta)**4.13)
         return 1.3e7*(a/b)
 
     def computeVrel(self):
         """Compute the mean relative velocity of collisions."""
-        a = (4/pi)*516*(self.planet.M/5.972e24)**(1/3)*(self.star.M/1.989e30)**(1/6)
-        return a/((self.eta*(self.planet.a/1.496e11))**0.5)
+        a = (4/pi)*516*(self.planet.M/MEARTH)**(1/3)*(self.star.M/MSUN)**(1/6)
+        return a/((self.eta*(self.planet.a/AU))**0.5)
 
     def computeXc(self):
         """Computes the constant Xc for which objects of size XcDc can destroy
@@ -448,11 +443,7 @@ class CollSwarm:
 
     def computeMtot(self, t):
         """Compute the total mass at a given time t."""
-        #y0 = self.swarm.DMtot(self.Rcc0, self.tnleft, inf, 0, self.M_init)
-        #Xc_val = self.computeXc()
         Xc_max = self.computeXcmax()
-        #self.swarm.Dc = self.Dc
-        #Mt = 3.9e-6 * self.rho * self.swarm.sigma0 * self.Dc**0.9 * self.Dmin**0.7
         Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, Xc_max, self.M_init, self.correction)
         return Mt
 
@@ -461,15 +452,13 @@ class CollSwarm:
         Dct = self.computeDc(t)
         self.swarm.Dc = Dct
         self.Dc = Dct
-        #print("Dct = {0:.3e}".format(Dct))
         Mt = self.computeMtot(t)
-        #print("Mt = {0:.3e}".format(Mt/5.972e24))
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
 
     def aopt(self, t):
         # t must be in years!
-        part1 = (self.star.M/Msun)**0.33 * self.f_vrel**0.55
-        part2 = (self.planet.M/Mearth)**0.06 * self.computeQd(self.Dc)**0.15 * self.eta
-        part3 = t * self.M_init/Mearth / self.rho / (self.Dc/1000)
+        part1 = (self.star.M/MSUN)**0.33 * self.f_vrel**0.55
+        part2 = (self.planet.M/MEARTH)**0.06 * self.computeQd(self.Dc)**0.15 * self.eta
+        part3 = t * self.M_init/MEARTH / self.rho / (self.Dc/KM)
         return 50. * part1 / part2 * part3**0.24 * AU
 
