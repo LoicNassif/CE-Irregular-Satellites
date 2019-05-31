@@ -17,9 +17,10 @@ H = 6.626070040e-34 #Plank's constant
 MEARTH = 5.972e24 # kg
 MSUN = 1.99e30 # kg
 AU = 1.496e11 # m
-WSUN = 3.828e26 # watts
+LSUN = 3.828e26 # watts
 MICRON = 1e-6 # m
 KM = 1e3 # m
+YEAR = 3.154e7 # seconds
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -280,8 +281,11 @@ class Planet():
         self.a = a
         self.Q = Q
         self.Z = Z
-        self.age = age
-        self.R = R if R is not None else self.RBaraffe(age) 
+        if (age != 1.e10):
+            self.age = age/YEAR
+        else:
+            self.age = age
+        self.R = R if R is not None else self.RBaraffe(self.age) 
 
     
     @property
@@ -344,24 +348,25 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65, age=0.):
+    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65*MICRON, age=0.):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
+        self.age = age/YEAR
         self.Dc = Dmax; self.eta = eta; self.rho = rho; self.Q = Q
         self.Dmin = self.computeDmin(self.Dmin_min); self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0); self.M_init = M0
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
-        self.updateSwarm(age)
+        self.updateSwarm(self.age)
 
     def computeDmin(self, Dmin_min=None):
         """Compute the minimum sized object in the distribution."""
         if Dmin_min is None:
             Dmin_min = self.Dmin_min
-        a1 = (self.eta**0.5)*(self.star.L/WSUN)
+        a1 = (self.eta**0.5)*(self.star.L/LSUN)
         a2 = self.rho*((self.planet.M/MEARTH)**(1/3))*((self.star.M/MSUN)**(2/3))
-        return max(2e5*(a1/a2)*MICRON, Dmin_min*MICRON)
+        return max(2e5*(a1/a2)*MICRON, Dmin_min)
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
         """Compute the distribution's surface area."""
