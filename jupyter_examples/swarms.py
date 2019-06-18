@@ -6,7 +6,7 @@ EVERY INPUT MUST BE IN SI UNITS
 
 IN DEVELOPMENT"""
 
-from numpy import pi, inf, exp, zeros, log2
+from numpy import pi, inf, exp, zeros, log2, log10
 import scipy.integrate as integrate
 from pread import BaraffeModelFixedTime, BaraffeModelFixedMass
 
@@ -21,6 +21,7 @@ LSUN = 3.828e26 # watts
 MICRON = 1e-6 # m
 KM = 1e3 # m
 YEAR = 3.154e7 # seconds
+JY = 1.e-26
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -265,6 +266,20 @@ class Star():
     def F(self, lamb, dist):
         # Flux from star at wavelength lamb at distance dist
         return computeFthermal(lamb, self.Across, self.T, dist)
+
+    def mag(self, lamb, F0):
+        F = self.F(lamb, self.d)
+        return -2.5*log10(F/F0)
+
+    def Imag(self): # Bessel (1979)
+        lamb = 0.79*MICRON
+        F0 = 2550*JY
+        return self.mag(lamb, F0)
+    
+    def Hmag(self): # Campins et al. (1985)
+        lamb = 1.6*MICRON
+        F0 = 1080*JY
+        return self.mag(lamb, F0)
 
     @property
     def A(self):        # 4piR**2
