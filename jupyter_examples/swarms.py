@@ -365,7 +365,7 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65, age=0.):
+    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 0., age=0.):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
@@ -377,14 +377,6 @@ class CollSwarm:
         self.correction = correction
         self.updateSwarm(self.age)
 
-    def computeDmin2(self, Dmin_min=None):
-        """Compute the minimum sized object in the distribution."""
-        if Dmin_min is None:
-            Dmin_min = self.Dmin_min
-        a1 = (self.eta**0.5)*(self.star.L/LSUN)
-        a2 = self.rho*((self.planet.M/MEARTH)**(1/3))*((self.star.M/MSUN)**(2/3))
-        return max(2e5*(a1/a2)*MICRON, Dmin_min)
-    
     def computeDmin(self, Dmin_min=None):
         """Compute the minimum sized object in the distribution."""
         if Dmin_min is None:
