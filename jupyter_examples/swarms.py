@@ -6,7 +6,7 @@ EVERY INPUT MUST BE IN SI UNITS
 
 IN DEVELOPMENT"""
 
-from numpy import pi, inf, exp, zeros, log2, log10
+from numpy import pi, inf, exp, zeros, log2, log10, sqrt
 import scipy.integrate as integrate
 from pread import BaraffeModelFixedTime, BaraffeModelFixedMass
 
@@ -22,6 +22,7 @@ MICRON = 1e-6 # m
 KM = 1e3 # m
 YEAR = 3.154e7 # seconds
 JY = 1.e-26
+G = 6.67e-11
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
@@ -290,18 +291,14 @@ class Star():
         return self.A/4.# piR**2
     
 class Planet():
-    def __init__(self, star, M, a, Q, R=None, Z='010', age=1.e10):
+    def __init__(self, star, M, a, Q, R=None, Z='010', age=1.e10*YEAR):
         self.star = star
         self.M = M
         self.a = a
         self.Q = Q
         self.Z = Z
-        if (age != 1.e10):
-            self.age = age/YEAR
-        else:
-            self.age = age
+        self.age = age
         self.R = R if R is not None else self.RBaraffe(self.age) 
-
     
     @property
     def Lintrinsic(self):
@@ -329,7 +326,12 @@ class Planet():
     @property
     def Across(self):
         return pi*self.R**2
-    
+   
+    @property
+    def RH(self):
+        """ Hill radius """
+        return self.a*(self.M/3./self.star.M)**(1./3.)
+
     def Fscat(self, lamb, g):
         # Calculate light scattered from planet to the observer
         return computeFscat(self.star, lamb, g, self.Q, pi*self.R**2, self.a)
@@ -363,11 +365,11 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65*MICRON, age=0.):
+    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 1.65, age=0.):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
-        self.age = age/YEAR
+        self.age = age
         self.Dc = Dmax; self.eta = eta; self.rho = rho; self.Q = Q
         self.Dmin = self.computeDmin(self.Dmin_min); self.fQ = fQ; self.f_vrel = f_vrel
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0); self.M_init = M0
@@ -375,13 +377,21 @@ class CollSwarm:
         self.correction = correction
         self.updateSwarm(self.age)
 
-    def computeDmin(self, Dmin_min=None):
+    def computeDmin2(self, Dmin_min=None):
         """Compute the minimum sized object in the distribution."""
         if Dmin_min is None:
             Dmin_min = self.Dmin_min
         a1 = (self.eta**0.5)*(self.star.L/LSUN)
         a2 = self.rho*((self.planet.M/MEARTH)**(1/3))*((self.star.M/MSUN)**(2/3))
         return max(2e5*(a1/a2)*MICRON, Dmin_min)
+    
+    def computeDmin(self, Dmin_min=None):
+        """Compute the minimum sized object in the distribution."""
+        if Dmin_min is None:
+            Dmin_min = self.Dmin_min
+        a1 = (self.eta**0.5)*(self.star.L/LSUN)
+        a2 = self.rho*((self.planet.M/MEARTH)**(1/3))*((self.star.M/MSUN)**(2/3))
+        return max(2e5*(a1/a2), Dmin_min)*MICRON
 
     def computeAtot(self, dlow=None, dmid=None, dhigh=None, cap=False):
         """Compute the distribution's surface area."""
@@ -427,9 +437,13 @@ class CollSwarm:
         a = (self.swarm.M0/MEARTH)*(self.star.M/MSUN)**1.38*self.f_vrel**2.27
         b = (Qd**0.63*self.rho*(self.Dmax/KM)*(self.planet.M/MEARTH)**0.24*
             ((self.planet.a/AU)*self.eta)**4.13)
-        return 1.3e7*(a/b)
+        return 1.3e7*(a/b)/YEAR
 
     def computeVrel(self):
+        """Compute the mean relative velocity of collisions."""
+        return (4/pi)*sqrt(G*self.planet.M/(self.planet.RH*self.eta))
+    
+    def computeVrel2(self):
         """Compute the mean relative velocity of collisions."""
         a = (4/pi)*516*(self.planet.M/MEARTH)**(1/3)*(self.star.M/MSUN)**(1/6)
         return a/((self.eta*(self.planet.a/AU))**0.5)
@@ -477,6 +491,7 @@ class CollSwarm:
 
     def aopt(self, t):
         # t must be in years!
+        t /= YEAR
         part1 = (self.star.M/MSUN)**0.33 * self.f_vrel**0.55
         part2 = (self.planet.M/MEARTH)**0.06 * self.computeQd(self.Dc)**0.15 * self.eta
         part3 = t * self.M_init/MEARTH / self.rho / (self.Dc/KM)
