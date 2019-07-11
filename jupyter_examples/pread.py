@@ -8,6 +8,7 @@ from scipy.interpolate import interp1d
 Rjup = 6.9911e7
 Lsun = 3.828e26
 Mearth = 5.97e24
+YEAR = 3.154e7 
 
 def convert_units(age_col, rad_col, logL_col):
     ages = []
@@ -16,7 +17,7 @@ def convert_units(age_col, rad_col, logL_col):
 
     # convert to years
     for i in range(1, len(age_col)):
-        ages.append(float(age_col[i])*1e9)
+        ages.append(float(age_col[i])*1e9*YEAR) # billions of years in table
 
     # convert to m
     for i in range(1, len(rad_col)):
