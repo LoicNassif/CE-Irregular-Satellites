@@ -366,7 +366,6 @@ class CollSwarm:
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
     def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 0., age=0.):
-        print('mkaing')
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
@@ -426,7 +425,6 @@ class CollSwarm:
 
     def computeRCC(self):
         """Compute the rate of collision."""
-        print('RCC')
         Qd = self.computeQd(self.Dc)
         a = (self.swarm.M0/MEARTH)*(self.star.M/MSUN)**1.38*self.f_vrel**2.27
         b = (Qd**0.63*self.rho*(self.Dmax/KM)*(self.planet.M/MEARTH)**0.24*
@@ -437,11 +435,6 @@ class CollSwarm:
         """Compute the mean relative velocity of collisions."""
         return (4/pi)*sqrt(G*self.planet.M/(self.planet.RH*self.eta))
     
-    def computeVrel2(self):
-        """Compute the mean relative velocity of collisions."""
-        a = (4/pi)*516*(self.planet.M/MEARTH)**(1/3)*(self.star.M/MSUN)**(1/6)
-        return a/((self.eta*(self.planet.a/AU))**0.5)
-
     def computeXc(self):
         """Computes the constant Xc for which objects of size XcDc can destroy
         objects of size Dc."""
