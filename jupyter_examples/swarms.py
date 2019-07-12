@@ -477,14 +477,8 @@ class CollSwarm:
         Mt = self.computeMtot(t)
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
 
-    def aopt2(self, t):
-        part1 = (self.star.M/MSUN)**0.33 * self.f_vrel**0.55
-        part2 = (self.planet.M/MJUP)**0.06 * self.computeQd(self.Dc)**0.15 * self.eta
-        part3 = t * self.M_init/MEARTH / self.rho / (self.Dc/KM)
-        return 50. * part1 / part2 * part3**0.24 * AU
     def aopt(self, t):
         part1 = (self.fQ/5)**0.15/(self.eta/0.3)*(self.rho/1000)**-0.39
         part2 = (self.Dc/100./KM)**-0.43*(self.planet.M/MJUP)**-0.06*(self.star.M/MSUN)**0.33 * (self.f_vrel/4*pi)**0.55
         part3 = (t/1e6/YEAR)**0.24 * (self.M_init/MEARTH)**0.24
         return 65*part1*part2*part3*AU
-
