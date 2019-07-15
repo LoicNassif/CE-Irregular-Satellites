@@ -15,15 +15,19 @@ C = 299792458 #speed of light
 K_B = 1.38064852e-23 #Boltzmann's constant
 H = 6.626070040e-34 #Plank's constant
 MEARTH = 5.972e24 # kg
-MJUP = 318*MEARTH
-MSUN = 1.99e30 # kg
+REARTH = 6.3781e6 # m
+MJUP = 1.89813e27 # kg
+RJUP = 71492000 # m
+PC = 3.086e16 # m
 AU = 1.496e11 # m
+MSUN = 1.99e30 # kg
 LSUN = 3.828e26 # watts
 MICRON = 1e-6 # m
 KM = 1e3 # m
 YEAR = 3.154e7 # seconds
 JY = 1.e-26
 G = 6.67e-11
+GCC = 1000 # kg/m^3
 
 class SizeDistribution:
     """An object that encapsulate the size distribution of the collision swarm.
