@@ -113,16 +113,6 @@ class SizeDistribution:
 
         return self.rho*pi*(lower + upper)/6
 
-    def DMtot(self, Rcc0, t, tnleft, Xc_val, M_init, correction):
-        """The total mass of the swarm at some given time t."""
-        numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
-        denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
-        A = numerator/denominator
-        if (t <= tnleft) or (not correction):
-            return (M_init)/(1 + Rcc0*t)
-        else:
-            return A*self.Dc**3
-
     def Atot_mod2(self):
         """Surface area of swarm. Output in AU. Testing function"""
         return (pi/4)*265.3*self.ks_val*(self.Dmin**(5 - 3*self.qs)/(3*self.qs - 5))
@@ -146,10 +136,6 @@ class SizeDistribution:
         part1 = (3/2)*(1/self.rho)*((6 - 3*self.qg)/(3*self.qs - 5))
         part2 = self.Dmin**(5 - 3*self.qs)*self.Dt**(3*self.qs - 3*self.qg)
         return part1*part2*self.Dc**(3*self.qg - 6)*self.M0
-
-    def Ntot_mod(self):
-        a = self.kg_val*(2**(3*self.qg - 3) - 1)*self.Dc**(3 - 3*self.qg)
-        return a/(3*self.qg - 3)
 
     def Ntot(self, dlow, dhigh, verbose=None):
         """Number of objects between input specification"""
@@ -175,13 +161,13 @@ class SizeDistribution:
 
         if dlow > self.Dc:
             # compute K_str
-            print("\t dlow > Dc")
+            #print("\t dlow > Dc")
             str_upper = K_str * (log2(self.Dmax) - log2(dlow))
             upper = 0
             lower = 0
 
         elif self.Dt < dlow <= self.Dc:
-            print("\t dlow < Dc")
+            #print("\t dlow < Dc")
             upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
                                                 - dlow**(3 - 3*self.qg))
             str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
@@ -370,7 +356,7 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 0., age=0.):
+    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 0., age=0., qs=1.9, qg=1.7):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
@@ -380,6 +366,7 @@ class CollSwarm:
         self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0); self.M_init = M0
         self.Rcc0 = self.computeRCC(); self.tnleft = self.computetnleft()
         self.correction = correction
+        self.qs = qs; self.qg = qg
         self.updateSwarm(self.age)
 
     def computeDmin(self, Dmin_min=None):
@@ -447,42 +434,37 @@ class CollSwarm:
         vrel = self.computeVrel()
         return (2*Qd/(vrel**2))**(1/3)
 
-    def computeXcmax(self):
-        """Computes the constant Xc for which objects of size XcDc can destroy
-        objects of size Dc."""
-        Qd = self.computeQd(self.Dmax)
-        vrel = self.computeVrel()
-        return (2*Qd/(vrel**2))**(1/3)
-
     def computetnleft(self):
         """Compute the time at which the first object is stranded."""
-        nval = self.swarm.Ntot_mod()
-        return nval/(self.Rcc0*self.Nstr)
+        Nhalf = self.swarm.Ntot(self.Dmax/2., self.Dmax)
+        return Nhalf/(self.Rcc0*self.Nstr)
 
-    def computeDc(self, t):
+    def computeDc(self):
         """Compute the new Dc after stranding time."""
-        if (t < self.tnleft) or (not self.correction):
+        if (self.age < self.tnleft) or (not self.correction):
             return self.Dmax
         else:
-            a = (1 + 0.4*(t - self.tnleft)/self.tnleft)**(self.alpha)
+            a = (1 + 0.4*(self.age - self.tnleft)/self.tnleft)**(self.alpha)
             return self.Dmax/a
 
-    def computeMtot(self, t):
+    def computeMtot(self):
         """Compute the total mass at a given time t."""
-        Xc_max = self.computeXcmax()
-        Mt = self.swarm.DMtot(self.Rcc0, t, self.tnleft, Xc_max, self.M_init, self.correction)
-        return Mt
+        if (self.age <= self.tnleft) or (not self.correction):
+            return (self.M_init)/(1 + self.Rcc0*self.age)
+        else:
+            numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
+            denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
+            A = numerator/denominator
+            return A*self.Dc**3
 
     def updateSwarm(self, t):
         """Description TBD"""
-        Dct = self.computeDc(t)
-        self.swarm.Dc = Dct
-        self.Dc = Dct
-        Mt = self.computeMtot(t)
-        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=Dct, M0=Mt)
+        self.age = t
+        self.Dc = self.computeDc()
+        self.swarm = SizeDistribution(self.Dmin, self.Dmax, Dc=self.Dc, M0=self.computeMtot())
 
     def aopt(self, t):
         part1 = (self.fQ/5)**0.15/(self.eta/0.3)*(self.rho/1000)**-0.39
-        part2 = (self.Dc/100./KM)**-0.43*(self.planet.M/MJUP)**-0.06*(self.star.M/MSUN)**0.33 * (self.f_vrel/4*pi)**0.55
+        part2 = (self.Dmax/100./KM)**-0.43*(self.planet.M/MJUP)**-0.06*(self.star.M/MSUN)**0.33 * (self.f_vrel/4*pi)**0.55
         part3 = (t/1e6/YEAR)**0.24 * (self.M_init/MEARTH)**0.24
         return 65*part1*part2*part3*AU
