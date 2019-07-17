@@ -23,7 +23,8 @@ PC = 3.086e16 # m
 AU = 1.496e11 # m
 MSUN = 1.99e30 # kg
 LSUN = 3.828e26 # watts
-TSUN = 5800
+TSUN = 5800 # Kelvin
+RSUN = 6.955e8  # m
 MICRON = 1e-6 # m
 KM = 1e3 # m
 YEAR = 3.154e7 # seconds
@@ -262,7 +263,7 @@ class Star():
         return computeFthermal(lamb, self.Across, self.T, dist)
 
     def computemag(self, lamb, F0):
-        F = self.F(lamb, self.d)
+        F = self.computeFthermal(lamb, self.d)
         return -2.5*log10(F/F0)
 
     @property
