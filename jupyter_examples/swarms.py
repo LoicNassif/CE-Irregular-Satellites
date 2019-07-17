@@ -116,10 +116,6 @@ class SizeDistribution:
 
         return self.rho*pi*(lower + upper)/6
 
-    def Atot_mod2(self):
-        """Surface area of swarm. Output in AU. Testing function"""
-        return (pi/4)*265.3*self.ks_val*(self.Dmin**(5 - 3*self.qs)/(3*self.qs - 5))
-
     def Atot(self, dlow=None, dhigh=None):
         """Surface area of swarm. Using integration. Output in meters."""
         if dlow is None:
@@ -133,12 +129,6 @@ class SizeDistribution:
         upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
                                             - self.Dt**(5 - 3*self.qg))
         return (pi/4)*(lower + upper)
-
-    def Atot_mod(self):
-        """A testing function for SI input"""
-        part1 = (3/2)*(1/self.rho)*((6 - 3*self.qg)/(3*self.qs - 5))
-        part2 = self.Dmin**(5 - 3*self.qs)*self.Dt**(3*self.qs - 3*self.qg)
-        return part1*part2*self.Dc**(3*self.qg - 6)*self.M0
 
     def Ntot(self, dlow, dhigh, verbose=None):
         """Number of objects between input specification"""
