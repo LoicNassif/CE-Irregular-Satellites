@@ -277,7 +277,7 @@ class Star():
         return self.A/4.# piR**2
     
 class Planet():
-    def __init__(self, star, M, a, Q, R=None, Z='010', age=1.e10*YEAR):
+    def __init__(self, star, M, a, Q=0.5, R=None, Z='002', age=1.e10*YEAR):
         self.star = star
         self.M = M
         self.a = a
@@ -346,12 +346,13 @@ class CollSwarm:
     Dmax: maximum particle size of the swarm [m]
     eta: constant fraction of the Hill radius at which irregulars orbit
     rho: mass density of the swarm [kg/m^3]
+    stranding: whether to account for stranding and update Dc as a function of time
     """
     Dt: float; Dmax: float; Nstr: float; Dc: float; swarm: SizeDistribution
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
-    Rcc0: float; tnleft: float; M_init: float; correction: bool; Dmin_min: float
+    Rcc0: float; tnleft: float; M_init: float; stranding: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dt, Dmax, eta, Nstr, Q, rho=1500, fQ=5, f_vrel=4/pi, correction=True, alpha=1./1.2, Dmin_min = 0., age=0., qs=1.9, qg=1.7):
+    def __init__(self, star, planet, M0, Dmax=1e5, Dt=100, eta=0.3, Q=0.1, rho=1000, fQ=5, Nstr=6, f_vrel=4/pi, stranding=False, alpha=1./1.2, Dmin_min = 0., age=0., qs=1.9, qg=1.7):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
@@ -359,7 +360,7 @@ class CollSwarm:
         self.eta = eta; self.rho = rho; self.Q = Q
         self.fQ = fQ; self.f_vrel = f_vrel
         self.M_init = M0
-        self.correction = correction
+        self.stranding = stranding 
         self.qs = qs; self.qg = qg
 
         # these quantities are calculated but never change
@@ -437,8 +438,8 @@ class CollSwarm:
         return (2*self.computeQd(self.computeDc())/(self.computeVrel()**2))**(1/3)
 
     def computeDc(self):
-        """Compute the new Dc after stranding time."""
-        if (self.age < self.tnleft) or (not self.correction):
+        """Compute the new Dc if we want to correct for stranding and if after stranding time."""
+        if (self.stranding == False) or (self.age <= self.tnleft): 
             return self.Dmax
         else:
             a = (1 + 0.4*(self.age - self.tnleft)/self.tnleft)**(self.alpha)
@@ -451,7 +452,7 @@ class CollSwarm:
 
     def computeMtot(self):
         """Compute the total mass at a given time t."""
-        if (self.age <= self.tnleft) or (not self.correction):
+        if (self.stranding == False) or (self.age <= self.tnleft):
             return (self.M_init)/(1 + self.Rcc0*self.age)
         else:
             numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
@@ -464,8 +465,5 @@ class CollSwarm:
         self.age = t
         self.swarm = SizeDistribution(self.computeDmin(), self.Dmax, Dc=self.computeDc(), M0=self.computeMtot())
 
-    def computeaopt(self, t):
-        part1 = (self.fQ/5)**0.15/(self.eta/0.3)*(self.rho/1000)**-0.39
-        part2 = (self.Dmax/100./KM)**-0.43*(self.planet.M/MJUP)**-0.06*(self.star.M/MSUN)**0.33 * (self.f_vrel/4*pi)**0.55
-        part3 = (t/1e6/YEAR)**0.24 * (self.M_init/MEARTH)**0.24
-        return 65*part1*part2*part3*AU
+    def computeaopt(self, t): # From our Eq 6 (factor to increase a by to reach Tcol = t)
+        return self.planet.a*(t/self.computeTcol())**0.24
