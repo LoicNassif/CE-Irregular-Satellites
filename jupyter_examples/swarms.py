@@ -54,13 +54,12 @@ class SizeDistribution:
     Dmax: float; rho: float; qs: float; sigma0: float
     kg_val: float; ks_val: float; qg: float
 
-    def __init__(self, Dmin, Dmax, Dc=None, M0=None, sigma0=None, Dt=100, rho=1500, qs=1.9, qg=1.7, Nstr=6):
+    def __init__(self, Dmin, Dmax, Dc=None, M0=None, sigma0=None, Dt=100, rho=1000, qs=1.9, qg=1.7):
         self.Dmin = Dmin; self.Dt = Dt; self.Dc = Dmax
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
         self.Nkg = None; self.Nks = None;
         self.A1 = []; self.A2 = [];
-        self.Nstr = Nstr;
         if Dc is not None:
             self.Dc = Dc
         if M0 is not None:
@@ -365,7 +364,7 @@ class CollSwarm:
 
         # these quantities are calculated but never change
         self.Dmin = self.computeDmin()
-        self.swarm = SizeDistribution(self.Dmin, self.Dmax, M0=M0); 
+        self.swarm = SizeDistribution(Dmin=self.Dmin, Dmax=self.Dmax, M0=M0, Dt=Dt, rho=rho) # needed to init Rcc0
         self.Rcc0 = self.computeRCC(self.Dmax); 
         self.tnleft = self.computetnleft()
         self.updateSwarm(self.age)
@@ -374,7 +373,7 @@ class CollSwarm:
         """Compute the minimum sized object in the distribution."""
         a1 = (self.eta**0.5)*(self.star.L/LSUN)
         a2 = self.rho*((self.planet.M/MEARTH)**(1/3))*((self.star.M/MSUN)**(2/3))
-        return max(2e5*(a1/a2), self.Dmin_min)*MICRON
+        return max(2e5*(a1/a2)*MICRON, self.Dmin_min)
 
     def computeNtot(self, dlow=None, dhigh=None):
         """Return the distribution's number of particles."""
@@ -392,7 +391,7 @@ class CollSwarm:
     def computeAtot(self, dlow=None, dhigh=None, cap=True):
         """Compute the distribution's surface area."""
         if dlow is None:
-            dlow = self.Dmin
+            dlow = self.computeDmin()
         if dhigh is None:
             dhigh = self.computeDc()
         A = self.swarm.Atot(dlow, dhigh)
@@ -463,7 +462,7 @@ class CollSwarm:
     def updateSwarm(self, t):
         """Description TBD"""
         self.age = t
-        self.swarm = SizeDistribution(self.computeDmin(), self.Dmax, Dc=self.computeDc(), M0=self.computeMtot())
+        self.swarm = SizeDistribution(Dmin=self.computeDmin(), Dmax=self.Dmax, Dc=self.computeDc(), M0=self.computeMtot(), Dt=self.Dt, rho=self.rho)
 
     def computeaopt(self, t): # From our Eq 6 (factor to increase a by to reach Tcol = t)
         return self.planet.a*(t/self.computeTcol())**0.24
