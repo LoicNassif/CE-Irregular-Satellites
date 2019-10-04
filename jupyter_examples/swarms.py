@@ -55,13 +55,14 @@ class SizeDistribution:
     kg_val: float; ks_val: float; qg: float
 
     def __init__(self, Dmin, Dmax, Dc=None, M0=None, sigma0=None, Dt=100, rho=1000, qs=1.9, qg=1.7):
-        self.Dmin = Dmin; self.Dt = Dt; self.Dc = Dmax
+        self.Dmin = Dmin; self.Dt = Dt
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
         self.Nkg = None; self.Nks = None;
         self.A1 = []; self.A2 = [];
-        if Dc is not None:
-            self.Dc = Dc
+        if Dc is None:
+            Dc = Dmax
+        self.Dc = Dc
         if M0 is not None:
             self.M0 = M0
             self.init_from_mass()
@@ -364,8 +365,8 @@ class CollSwarm:
 
         # these quantities are calculated but never change
         self.Dmin = self.computeDmin()
-        self.swarm = SizeDistribution(Dmin=self.Dmin, Dmax=self.Dmax, M0=M0, Dt=Dt, rho=rho) # needed to init Rcc0
-        self.Rcc0 = self.computeRCC(self.Dmax); 
+        self.swarm = SizeDistribution(Dmin=self.Dmin, Dmax=self.Dmax, M0=M0, Dt=Dt, rho=rho, qs=qs, qg=qg) # needed to init Rcc0
+        self.Tcol0 = self.computeTcol(Mtot=M0, Dc=Dmax)
         self.tnleft = self.computetnleft()
         self.updateSwarm(self.age)
 
@@ -417,15 +418,35 @@ class CollSwarm:
     def computeCRthermal(self, lamb):
         return computeCRthermal(lamb, self.computeTinc(), self.star.T, self.computeAtot(), self.star.A)
 
-    def computeRCC(self, D):
+    def computeRCC2(self, D):
         """Compute the rate of collision for particles of size D (assumes XcD >> Dt (K11)."""
         a = (self.swarm.M0/MEARTH)*(self.star.M/MSUN)**1.38*self.f_vrel**2.27
         b = (self.computeQd(D)**0.63*self.rho*(D/KM)*(self.planet.M/MEARTH)**0.24*
             ((self.planet.a/AU)*self.eta)**4.13)
         return 1.3e7*(a/b)/YEAR
-
-    def computeTcol(self):
+    
+    def computeRCC3(self, D):
+        vrel = self.computeVrel()
+        Xc = self.computeXc()
+        C1 = 0.1; C2 = -1.9 # Kennedy11
+        prefac = 3./2.*(6.-3.*
+        return 1.3e7*(a/b)/YEAR
+    
+    
+    def computeTcol2(self):
         return 1/self.computeRCC(self.computeDc())
+    
+    def computeRCC(self, Dc):
+        return 1./self.computeTcol(Dc)
+
+    def computeTcol(self, Mtot=None, Dc=None):
+        if Dc is None:
+            Dc = self.computeDc()
+        if Mtot is None:
+            Mtot = self.computeMtot(Dc)
+        s = self
+        beta = (s.fQ/5)**(-0.63)*(s.eta/0.3)**4.13*(s.rho/GCC)**(1.63)*(Dc/100./KM)**1.79*(s.planet.M/MJUP)**(0.24)*(s.star.M/MSUN)**(-1.38)
+        return 1e7*YEAR*beta*(s.planet.a/115/AU)**4.13*(MEARTH/Mtot)
 
     def computeVrel(self):
         """Compute the mean relative velocity of collisions."""
@@ -446,18 +467,20 @@ class CollSwarm:
     
     def computetnleft(self):
         Nhalf = self.swarm.Ntot(self.Dmax/2., self.Dmax)
-        return Nhalf/(self.Rcc0*self.Nstr)
+        return Nhalf/(self.Nstr/self.Tcol0)
     
 
-    def computeMtot(self):
+    def computeMtot(self, Dc=None):
         """Compute the total mass at a given time t."""
         if (self.stranding == False) or (self.age <= self.tnleft):
-            return (self.M_init)/(1 + self.Rcc0*self.age)
+            return (self.M_init)/(1 + self.age/self.Tcol0)
         else:
+            if Dc is None:
+                Dc = self.computeDc()
             numerator = (3*self.qg - 3)*self.Nstr*pi*self.rho
             denominator = 6*(2**(3*self.qg - 3) - 1) * (6 - 3*self.qg)
             A = numerator/denominator
-            return A*self.computeDc()**3
+            return A*Dc**3
 
     def updateSwarm(self, t):
         """Description TBD"""
@@ -465,4 +488,4 @@ class CollSwarm:
         self.swarm = SizeDistribution(Dmin=self.computeDmin(), Dmax=self.Dmax, Dc=self.computeDc(), M0=self.computeMtot(), Dt=self.Dt, rho=self.rho)
 
     def computeaopt(self, t): # From our Eq 6 (factor to increase a by to reach Tcol = t)
-        return self.planet.a*(t/self.computeTcol())**0.24
+        return self.planet.a*(tself.Tcol0)**0.24
