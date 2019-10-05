@@ -11,6 +11,7 @@ import scipy.integrate as integrate
 from pread import BaraffeModelFixedTime, BaraffeModelFixedMass
 
 SIG = 5.670367e-8 #Stefan-Boltzmann constant
+G =  6.6743e-11 # Gravitational constant
 C = 299792458 #speed of light
 K_B = 1.38064852e-23 #Boltzmann's constant
 H = 6.626070040e-34 #Plank's constant
@@ -55,6 +56,7 @@ class SizeDistribution:
     kg_val: float; ks_val: float; qg: float
 
     def __init__(self, Dmin, Dmax, Dc=None, M0=None, sigma0=None, Dt=100, rho=1000, qs=1.9, qg=1.7):
+        """Dc defaults to Dmax. Dmax now just in there for forward compatbility. All masses, areas and numbers only computed up to size Dc"""
         self.Dmin = Dmin; self.Dt = Dt
         self.Dmax = Dmax; self.rho = rho; self.qs = qs
         self.qg = qg; self.kg_val = None; self.ks_val = None;
@@ -63,6 +65,11 @@ class SizeDistribution:
         if Dc is None:
             Dc = Dmax
         self.Dc = Dc
+        if self.Dmin > self.Dc:
+            raise ValueError("Dmin must be smaller than Dc in swarms.SizeDistribution")
+        if self.Dc > self.Dmax:
+            raise ValueError("Dc must be <= Dmax in swarms.SizeDistribution")
+
         if M0 is not None:
             self.M0 = M0
             self.init_from_mass()
@@ -73,123 +80,119 @@ class SizeDistribution:
             raise ValueError("Mass and Area both unspecified")
 
     def init_from_mass(self):
-        """initialize from the specified mass"""
+        """initialize from the specified mass."""
+        if self.Dc < self.Dt:
+            raise ValueError("swarms.sizeDistribution initialized with a maximum size Dc ({0:.1e}) < Dt ({0:.1e}). Implementation assumes Dc > Dt.".format(self.Dc, self.Dt))
+
         self.kg_val = (self.M0*(6/(pi*self.rho))*(6 - 3*self.qg)
                         *self.Dc**(3*self.qg - 6))
         self.kg_to_ks()
 
     def init_from_area(self):
         """initialize from the specified area"""
+        if self.Dmin > self.Dt:
+            raise ValueError("swarms.sizeDistribution initialized with a miminimum size Dmin > Dt. Implementation assumes Dmin < Dt.")
         self.ks_val = ((4*(3*self.qs - 5)/pi)*self.sigma0
                         *self.Dmin**(3*self.qs - 5))
         self.ks_to_kg()
 
     def kg_to_ks(self):
-        """description TBD"""
+        """Calculate ks from kg from continuity"""
         self.ks_val = self.Dt**(3*self.qs - 3*self.qg)*self.kg_val
 
     def ks_to_kg(self):
-        """description TBD"""
+        """Calculate kg from ks from continuity"""
         self.kg_val = self.Dt**(3*self.qg - 3*self.qs)*self.ks_val
 
-    def compute_kg_from_Mtot(self, Mt):
-        """description TBD"""
-        return (Mt*(6/(pi*self.rho))*(6 - 3*self.qg)
-                    * self.Dmax**(3*self.qg - 6))
-
-    def compute_ks_from_kg(self):
-        """description TBD"""
-        return self.Dt**(3*self.qs - 3*self.qg)*self.Nkg
-
-    def Mtot(self, dlow=None, dhigh=None):#, Nkg, Nks):
-        """The total mass of the swarm"""
+    def Mtot(self, dlow=None, dhigh=None):
+        """The total mass of the swarm. By default goes from Dmin to Dc"""
         if dlow is None:
             dlow = self.Dmin
         if dhigh is None:
             dhigh = self.Dc
+        
+        if dlow > dhigh:
+            raise ValueError("dlow={0:.1e} must be < dhigh={1:.1e} in swarms.SizeDistribution.Mtot()".format(dlow, dhigh))
+        
+        if dhigh > self.Dc:
+            raise ValueError("dhigh={0:.1e} must be <= Dc={1:.1e} in swarms.SizeDistribution.Mtot()".format(dhigh, Dc))
 
-        lower = (self.ks_val/(6 - 3*self.qs))*(self.Dt**(6 - 3*self.qs)
+        lower = 0; upper = 0;
+
+        if dlow < self.Dt:  # Use qs slope
+            dmid = min(dhigh, self.Dt)
+            lower = (self.ks_val/(6 - 3*self.qs))*(dmid**(6 - 3*self.qs)
                                             - dlow**(6 - 3*self.qs))
 
-        upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
-                                            - self.Dt**(6 - 3*self.qg))
+        if dhigh > self.Dt: # Use qg slope
+            dmid = max(dlow, self.Dt)
+            upper = (self.kg_val/(6 - 3*self.qg))*(dhigh**(6 - 3*self.qg)
+                                            - dmid**(6 - 3*self.qg))
 
         return self.rho*pi*(lower + upper)/6
 
     def Atot(self, dlow=None, dhigh=None):
-        """Surface area of swarm. Using integration. Output in meters."""
+        """Surface area of swarm. Using integration. By default goes from Dmin to Dc."""
+        if dlow is None:
+            dlow = self.Dmin
+        if dhigh is None:
+            dhigh = self.Dc
+        
+        if dlow > dhigh:
+            raise ValueError("dlow={0:.1e} must be < dhigh={1:.1e} in swarms.SizeDistribution.Atot()".format(dlow, dhigh))
+        
+        if dhigh > self.Dc:
+            raise ValueError("dhigh={0:.1e} must be <= Dc={1:.1e} in swarms.SizeDistribution.Atot()".format(dhigh, Dc))
+
+        lower = 0; upper = 0;
+
+        if dlow < self.Dt:  # Use qs slope
+            dmid = min(dhigh, self.Dt)
+            lower = (self.ks_val/(5 - 3*self.qs))*(dmid**(5 - 3*self.qs)
+                                            - dlow**(5 - 3*self.qs))
+
+        if dhigh > self.Dt: # Use qg slope
+            dmid = max(dlow, self.Dt)
+            upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
+                                            - dmid**(5 - 3*self.qg))
+
+        return (pi/4)*(lower + upper)
+
+    def Ntot(self, dlow=None, dhigh=None):
+        """Number of objects between input specification. By default goes from Dmin to Dc."""
         if dlow is None:
             dlow = self.Dmin
         if dhigh is None:
             dhigh = self.Dc
 
-        lower = (self.ks_val/(5 - 3*self.qs))*(self.Dt**(5 - 3*self.qs)
-                                            - dlow**(5 - 3*self.qs))
+        if dlow > dhigh:
+            raise ValueError("dlow={0:.1e} must be < dhigh={1:.1e} in swarms.SizeDistribution.Ntot()".format(dlow, dhigh))
 
-        upper = (self.kg_val/(5 - 3*self.qg))*(dhigh**(5 - 3*self.qg)
-                                            - self.Dt**(5 - 3*self.qg))
-        return (pi/4)*(lower + upper)
+        if dhigh > self.Dc:
+            raise ValueError("dhigh={0:.1e} must be <= Dc={1:.1e} in swarms.SizeDistribution.Ntot()".format(dhigh, Dc))
 
-    def Ntot(self, dlow, dhigh, verbose=None):
-        """Number of objects between input specification"""
-        if dlow is None:
-            dlow = self.Dmin
-            dmid= self.Dt
-        elif dlow > self.Dt:
-            dmid = dlow
-        else:
-            dmid = self.Dt
-        if dhigh is None:
-            dhigh = self.Dmax
-
-        lower = (self.ks_val/(3 - 3*self.qs))*(self.Dt**(3 - 3*self.qs)
+        lower = 0; upper = 0;
+        
+        if dlow < self.Dt:  # Use qs slope
+            dmid = min(dhigh, self.Dt)
+            lower = (self.ks_val/(3 - 3*self.qs))*(dmid**(3 - 3*self.qs)
                                             - dlow**(3 - 3*self.qs))
 
-        upper = 0
-        str_upper = 0
-        K_str = self.kg_val * self.Dc**(3 - 3*self.qg) #numerator / denominator
-        str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
-        upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
-                                            - dmid**(3 - 3*self.qg))
-
-        if dlow > self.Dc:
-            # compute K_str
-            #print("\t dlow > Dc")
-            str_upper = K_str * (log2(self.Dmax) - log2(dlow))
-            upper = 0
-            lower = 0
-
-        elif self.Dt < dlow <= self.Dc:
-            #print("\t dlow < Dc")
+        if dhigh > self.Dt: # Use qg slope
+            dmid = max(dlow, self.Dt)
             upper = (self.kg_val/(3 - 3*self.qg))*(self.Dc**(3 - 3*self.qg)
-                                                - dlow**(3 - 3*self.qg))
-            str_upper = K_str * (log2(self.Dmax) - log2(self.Dc))
-            lower = 0
-
-        if (verbose is not None):
-            from random import randint
-            num = randint(0, 100)
-            if num == 5:
-                print("ks_val = ", self.ks_val)
-                print("kg_val = ", self.kg_val)
-                print("lower = ", lower)
-                print("upper = ", upper)
-                print("str upper = ", str_upper)
-                print("qg = ", self.qg)
-                print("k_str = ", K_str)
-                print("Dmax = ", self.Dmax)
-                print("Dc = ", self.Dc)
-                print("dlow = ", dlow)
-        if dlow > self.Dmax:
-            return 0
-        elif dlow > self.Dt:
-            return (upper + str_upper)
-        else:
-            return (lower + upper + str_upper)
+                                            - dmid**(3 - 3*self.qg))
+        return lower + upper
 
     def n(self, D):
-        """TBA"""
-        return self.ks_val*D**(2 - 3*self.qs) + self.kg_val*D**(2 - 3*self.qg)
+        """Differential size distribution, i.e. # of particles between size D and D+dD"""
+        if D > self.Dc:
+            raise ValueError("D={0:.1e} must be <= Dc={1:.1e} in swarms.SizeDistribution.n()".format(D, Dc))
+
+        if D < self.Dt:
+            return self.ks_val*D**(2 - 3*self.qs)
+        else:
+            return self.kg_val*D**(2 - 3*self.qg)
     
 def computeBnu(lamb, T):
     a = 2*H*(C/lamb)**3/C**2
@@ -352,11 +355,11 @@ class CollSwarm:
     Dmin: float; eta: float; fQ: float; f_vrel: float; 
     Rcc0: float; tnleft: float; M_init: float; stranding: bool; Dmin_min: float
 
-    def __init__(self, star, planet, M0, Dmax=1e5, Dt=100, eta=0.3, Q=0.1, rho=1000, fQ=5, Nstr=6, f_vrel=4/pi, stranding=False, alpha=1./1.2, Dmin_min = 0., age=0., qs=1.9, qg=1.7):
+    def __init__(self, star, planet, M0, Dmax=1e5, Dt=100, eta=0.3, Q=0.1, rho=1000, fQ=5, Nstr=6, f_vrel=4/pi, stranding=False, alpha=1./1.2, Dmin_min = 0., age=0., qs=1.9, qg=1.7, C1=0.1, C2=-1.9):
         self.planet = planet; self.star = star
         self.Dt = Dt; self.Dmax = Dmax; self.Nstr = Nstr
         self.alpha = alpha; self.Dmin_min = Dmin_min
-        self.age = age; 
+        self.age = age; self.C1 = C1; self.C2 = C2
         self.eta = eta; self.rho = rho; self.Q = Q
         self.fQ = fQ; self.f_vrel = f_vrel
         self.M_init = M0
@@ -367,14 +370,15 @@ class CollSwarm:
         self.Dmin = self.computeDmin()
         self.swarm = SizeDistribution(Dmin=self.Dmin, Dmax=self.Dmax, M0=M0, Dt=Dt, rho=rho, qs=qs, qg=qg) # needed to init Rcc0
         self.Tcol0 = self.computeTcol(Mtot=M0, Dc=Dmax)
-        self.tnleft = self.computetnleft()
+        self.tnleft = self.computetnleft(self.Dmax)
         self.updateSwarm(self.age)
 
     def computeDmin(self):
         """Compute the minimum sized object in the distribution."""
-        a1 = (self.eta**0.5)*(self.star.L/LSUN)
-        a2 = self.rho*((self.planet.M/MEARTH)**(1/3))*((self.star.M/MSUN)**(2/3))
-        return max(2e5*(a1/a2)*MICRON, self.Dmin_min)
+        # Assumes Qpr = 1
+        num = 9.*self.star.L*self.eta**(1./2.)
+        denom  = 8.*pi*G*self.star.M*C*self.rho # factor of 2 from Burns to get Diameter rather than radius
+        return max(num/denom*(self.star.M/self.planet.M)**(1./3.), self.Dmin_min)
 
     def computeNtot(self, dlow=None, dhigh=None):
         """Return the distribution's number of particles."""
@@ -403,7 +407,6 @@ class CollSwarm:
             return A
 
     def computeTinc(self): # swarm does not have the contribution to temperature from internal energy planet has. Just calc from incident light
-        # Calculate equilibrium temperature of the planet from incident light
         return (self.star.L*(1.-self.Q)/(16*pi*SIG*self.planet.a**2))**(1./4.)
     
     def computeFscat(self, lamb, g, planet=False, swarm=False, Fstar=None):
@@ -418,44 +421,19 @@ class CollSwarm:
     def computeCRthermal(self, lamb):
         return computeCRthermal(lamb, self.computeTinc(), self.star.T, self.computeAtot(), self.star.A)
 
-    def computeRCC2(self, D):
-        """Compute the rate of collision for particles of size D (assumes XcD >> Dt (K11)."""
-        a = (self.swarm.M0/MEARTH)*(self.star.M/MSUN)**1.38*self.f_vrel**2.27
-        b = (self.computeQd(D)**0.63*self.rho*(D/KM)*(self.planet.M/MEARTH)**0.24*
-            ((self.planet.a/AU)*self.eta)**4.13)
-        return 1.3e7*(a/b)/YEAR
-    
-    def computeRCC3(self, D):
-        vrel = self.computeVrel()
-        Xc = self.computeXc()
-        C1 = 0.1; C2 = -1.9 # Kennedy11
-        prefac = 3./2.*(6.-3.*
-        return 1.3e7*(a/b)/YEAR
-    
-    
-    def computeTcol2(self):
-        return 1/self.computeRCC(self.computeDc())
-    
-    def computeRCC(self, Dc):
-        return 1./self.computeTcol(Dc)
-
     def computeTcol(self, Mtot=None, Dc=None):
-        if Dc is None:
-            Dc = self.computeDc()
-        if Mtot is None:
-            Mtot = self.computeMtot(Dc)
-        s = self
-        beta = (s.fQ/5)**(-0.63)*(s.eta/0.3)**4.13*(s.rho/GCC)**(1.63)*(Dc/100./KM)**1.79*(s.planet.M/MJUP)**(0.24)*(s.star.M/MSUN)**(-1.38)
-        return 1e7*YEAR*beta*(s.planet.a/115/AU)**4.13*(MEARTH/Mtot)
+        return 1./self.computeRCC(Mtot, Dc)
 
     def computeVrel(self):
         """Compute the mean relative velocity of collisions."""
         return (4/pi)*sqrt(G*self.planet.M/(self.planet.RH*self.eta))
    
-    def computeXc(self):
+    def computeXc(self, Dc=None):
         """Computes the constant Xc for which objects of size XcDc can destroy
         objects of size Dc."""
-        return (2*self.computeQd(self.computeDc())/(self.computeVrel()**2))**(1/3)
+        if Dc is None:
+            Dc = self.computeDc()
+        return (2*self.computeQd(Dc)/(self.computeVrel()**2))**(1/3)
 
     def computeDc(self):
         """Compute the new Dc if we want to correct for stranding and if after stranding time."""
@@ -465,10 +443,9 @@ class CollSwarm:
             a = (1 + 0.4*(self.age - self.tnleft)/self.tnleft)**(self.alpha)
             return self.Dmax/a
     
-    def computetnleft(self):
-        Nhalf = self.swarm.Ntot(self.Dmax/2., self.Dmax)
+    def computetnleft(self, Dc):
+        Nhalf = self.swarm.Ntot(Dc/2., Dc)
         return Nhalf/(self.Nstr/self.Tcol0)
-    
 
     def computeMtot(self, Dc=None):
         """Compute the total mass at a given time t."""
@@ -488,4 +465,5 @@ class CollSwarm:
         self.swarm = SizeDistribution(Dmin=self.computeDmin(), Dmax=self.Dmax, Dc=self.computeDc(), M0=self.computeMtot(), Dt=self.Dt, rho=self.rho)
 
     def computeaopt(self, t): # From our Eq 6 (factor to increase a by to reach Tcol = t)
-        return self.planet.a*(tself.Tcol0)**0.24
+        power = (1.- 2./3.*self.C2)/2.+3.# exact power \approx 4.13 in Kennedy paper. Use exact so that if we put planet at a=aopt, we actually get exact Tcol
+        return self.planet.a*(t/self.Tcol0)**(1/power)
