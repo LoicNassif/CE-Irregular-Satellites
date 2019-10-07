@@ -421,6 +421,18 @@ class CollSwarm:
     def computeCRthermal(self, lamb):
         return computeCRthermal(lamb, self.computeTinc(), self.star.T, self.computeAtot(), self.star.A)
 
+    def computeRCC(self, Mtot=None, Dc=None):
+        if Dc is None:
+            Dc = self.computeDc()
+        if Mtot is None:
+            Mtot = self.computeMtot(Dc)
+
+        vrel = self.computeVrel()
+        Xc = self.computeXc(Dc)
+        V = 2.*pi*0.866*(self.eta*self.planet.RH)**3
+
+        return 3./2.*(6.-3.*self.qg)/(3.*self.qg-5.)*vrel*self.C1*Xc**self.C2*Mtot/self.rho/Dc/V
+
     def computeTcol(self, Mtot=None, Dc=None):
         return 1./self.computeRCC(Mtot, Dc)
 
