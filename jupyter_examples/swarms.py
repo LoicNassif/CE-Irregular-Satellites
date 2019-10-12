@@ -469,6 +469,30 @@ class CollSwarm:
         self.age = t
         self.swarm = SizeDistribution(Dmin=self.computeDmin(), Dmax=self.Dmax, Dc=self.computeDc(), M0=self.computeMtot(), Dt=self.Dt, rho=self.rho)
    
-    def computeaopt(self): # From our Eq 6 (factor to increase a by to reach Tcol = t)
+    def computeaopt(self): # From our Eq 6 (Tage/Tcol = (a/aopt)^4.13)
         power = (1.- 2./3.*self.C2)/2.+3.# exact power \approx 4.13 in Kennedy paper. Use exact so that if we put planet at a=aopt, we actually get exact Tcol
         return self.planet.a*(self.age/self.Tcol0)**(1/power)
+
+    # *******************************************************
+    # Functions  below this line all assume qg=1.7 and qs=1.9
+    # *******************************************************
+    def computef_a(self):
+        fa413 = 1.e7*YEAR/self.computeTcol() * (self.planet.M/MJUP)**0.24 / (self.star.M/0.5/MSUN)**1.38 * (self.planet.a/90./AU)**4.13 / (self.computeMtot()/MEARTH)
+        return fa413**(1/4.13)
+
+    def computef_C(self):
+        return self.computeCRscat()/(self.planet.M/MJUP)**0.47*(self.star.M/0.5/MSUN)**3.71/(self.planet.a/90/AU)**2.13*(self.age/1e7/YEAR)/3.3e-6
+
+    def computeCmax(self):
+        p = self.planet
+        s = self
+        aopt = self.computeaopt()
+        # put planet at aopt and calculate contrast
+        planet = Planet(self.star, M=p.M , R=p.R, a=aopt, Q=p.Q, Z=p.Z, age=p.age)
+        swarm = CollSwarm(self.star, planet, s.M0, Dt=s.Dt, Dmax=s.Dmax, Q=s.Q, eta=s.eta, g=s.g, rho=s.rho, Nstr = s.Nstr, f_vrel=s.f_vrel, stranding=s.stranding, alpha=s.alpha, fQ=s.fQ, Dmin_min=s.Dmin_min, age=s.age, qs=s.qs, qg=s.qg, C1=s.C1, C2=s.C2)
+        return 2*swarm.computeCRscat() # at aopt, age=Tcol, so M=M0/2. Want full M0 to match the whole collision limited regime
+
+    def computef_Cmax(self):
+        Cmax = self.computeCmax()
+        return Cmax/(self.planet.M/MJUP)**0.34*(self.star.M/0.5/MSUN)**3*(self.age/1e7/YEAR)**0.48/(self.M0/MEARTH)**0.52/3.3e-6
+
